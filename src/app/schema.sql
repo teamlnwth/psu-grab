@@ -1,0 +1,44 @@
+-- 1. Create Profiles Table (Users)
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    phone TEXT NOT NULL,
+    student_id TEXT,
+    role TEXT NOT NULL CHECK (role IN ('customer', 'rider', 'merchant')),
+    shop_name TEXT,
+    merchant_type TEXT CHECK (merchant_type IN ('restaurant', 'minimart')),
+    password TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. Create Products Table (Merchant Inventory)
+CREATE TABLE IF NOT EXISTS public.products (
+    id TEXT PRIMARY KEY,
+    merchant_id TEXT REFERENCES public.profiles(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    price DOUBLE PRECISION NOT NULL,
+    category TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. Create Orders Table (Transactions)
+CREATE TABLE IF NOT EXISTS public.orders (
+    id TEXT PRIMARY KEY,
+    customer_id TEXT REFERENCES public.profiles(id) ON DELETE CASCADE,
+    customer_name TEXT NOT NULL,
+    merchant_id TEXT REFERENCES public.profiles(id) ON DELETE CASCADE,
+    merchant_name TEXT NOT NULL,
+    rider_id TEXT REFERENCES public.profiles(id) ON DELETE SET NULL,
+    rider_name TEXT,
+    items TEXT NOT NULL, -- JSON string or text describing items
+    total_price DOUBLE PRECISION NOT NULL,
+    dest TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('pending', 'preparing', 'calling_rider', 'delivering', 'completed')),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. Enable Realtime updates
+ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;

@@ -55,7 +55,7 @@ export default function RegisterPage() {
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    const result = register({
+    const result = await register({
       name,
       email,
       phone,

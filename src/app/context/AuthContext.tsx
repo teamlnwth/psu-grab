@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../supabase';
 
 export interface User {
   id: string;
@@ -16,8 +17,8 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (emailOrStudentId: string, password: string) => { success: boolean; error?: string };
-  register: (userData: Omit<User, 'id'> & { password: string }) => { success: boolean; error?: string };
+  login: (emailOrStudentId: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (userData: Omit<User, 'id'> & { password: string }) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 }
 
@@ -27,135 +28,175 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Initialize: Load users and check active session
+  // Initialize: Check session and ensure seed data exists in Supabase
   useEffect(() => {
-    try {
-      // Create seed data if no users exist or append merchant seeds
-      const existingUsersJson = localStorage.getItem('psu_grab_users');
-      let usersList = existingUsersJson ? JSON.parse(existingUsersJson) : [];
-
-      const seedUsers = [
-        {
-          id: '1',
-          name: 'สมชาย รักดี',
-          email: 'somchai@gmail.com',
-          phone: '0812345678',
-          studentId: '6410110001',
-          role: 'customer',
-          password: 'password123'
-        },
-        {
-          id: '2',
-          name: 'สมหญิง สปีดดี',
-          email: 'somying@gmail.com',
-          phone: '0898765432',
-          studentId: '6410110002',
-          role: 'rider',
-          password: 'password123'
-        },
-        {
-          id: '3',
-          name: 'ป้าศรี หมีข้าวยำ',
-          email: 'krua_psu@gmail.com',
-          phone: '0855555555',
-          role: 'merchant',
-          shopName: 'ครัว ม.อ. (Krua PSU)',
-          merchantType: 'restaurant',
-          password: 'password123'
-        },
-        {
-          id: '4',
-          name: 'เจ๊กิม ขายของชำ',
-          email: 'psu_mart@gmail.com',
-          phone: '0866666666',
-          role: 'merchant',
-          shopName: 'ม.อ. มาร์ท (PSU Mart)',
-          merchantType: 'minimart',
-          password: 'password123'
+    const initAuth = async () => {
+      try {
+        // Load active session from localStorage
+        const session = localStorage.getItem('psu_grab_session');
+        if (session) {
+          setUser(JSON.parse(session));
         }
-      ];
 
-      // Add only missing seed users
-      let updated = false;
-      seedUsers.forEach(seed => {
-        if (!usersList.some((u: any) => u.email === seed.email)) {
-          usersList.push(seed);
-          updated = true;
+        // Define seed accounts to auto-populate in user's Supabase database
+        const seedUsers = [
+          {
+            id: '1',
+            name: 'สมชาย รักดี',
+            email: 'somchai@gmail.com',
+            phone: '0812345678',
+            student_id: '6410110001',
+            role: 'customer',
+            password: 'password123'
+          },
+          {
+            id: '2',
+            name: 'สมหญิง สปีดดี',
+            email: 'somying@gmail.com',
+            phone: '0898765432',
+            student_id: '6410110002',
+            role: 'rider',
+            password: 'password123'
+          },
+          {
+            id: '3',
+            name: 'ป้าศรี หมีข้าวยำ',
+            email: 'krua_psu@gmail.com',
+            phone: '0855555555',
+            role: 'merchant',
+            shop_name: 'ครัว ม.อ. (Krua PSU)',
+            merchant_type: 'restaurant',
+            password: 'password123'
+          },
+          {
+            id: '4',
+            name: 'เจ๊กิม ขายของชำ',
+            email: 'psu_mart@gmail.com',
+            phone: '0866666666',
+            role: 'merchant',
+            shop_name: 'ม.อ. มาร์ท (PSU Mart)',
+            merchant_type: 'minimart',
+            password: 'password123'
+          }
+        ];
+
+        // Seed users to database using upsert
+        await supabase.from('profiles').upsert(seedUsers, { onConflict: 'email' });
+
+        // Seed default products for the mock merchants if products table is empty
+        const { data: existingProds } = await supabase.from('products').select('id').limit(1);
+        if (!existingProds || existingProds.length === 0) {
+          const initialProducts = [
+            { id: 'p1-3', merchant_id: '3', name: 'ข้าวกะเพราไก่ไข่ดาว', price: 50, category: 'อาหาร' },
+            { id: 'p2-3', merchant_id: '3', name: 'ข้าวผัดต้มยำทะเล', price: 65, category: 'อาหาร' },
+            { id: 'p3-3', merchant_id: '3', name: 'ชาเขียวนมสด (โรงช้าง)', price: 30, category: 'เครื่องดื่ม' },
+            { id: 'p1-4', merchant_id: '4', name: 'น้ำดื่ม ม.อ. (ขวดใหญ่)', price: 12, category: 'เครื่องดื่ม' },
+            { id: 'p2-4', merchant_id: '4', name: 'บะหมี่กึ่งสำเร็จรูปรสต้มยำ', price: 15, category: 'อาหารแห้ง' },
+            { id: 'p3-4', merchant_id: '4', name: 'ขนมขบเคี้ยวตราก๊อบกอบ', price: 20, category: 'ของกินเล่น' }
+          ];
+          await supabase.from('products').upsert(initialProducts, { onConflict: 'id' });
         }
-      });
-
-      if (!existingUsersJson || updated) {
-        localStorage.setItem('psu_grab_users', JSON.stringify(usersList));
+      } catch (err) {
+        console.warn(
+          'Supabase database check failed. Please ensure schema.sql tables are created in the SQL Editor.',
+          err
+        );
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // Check current session
-      const session = localStorage.getItem('psu_grab_session');
-      if (session) {
-        setUser(JSON.parse(session));
-      }
-    } catch (e) {
-      console.error('Failed to access localStorage', e);
-    } finally {
-      setLoading(false);
-    }
+    initAuth();
   }, []);
 
-  const login = (emailOrStudentId: string, password: string) => {
+  const login = async (emailOrStudentId: string, password: string) => {
     try {
-      const usersJson = localStorage.getItem('psu_grab_users');
-      if (!usersJson) return { success: false, error: 'ไม่พบบัญชีผู้ใช้ในระบบ' };
-
-      const users = JSON.parse(usersJson);
       const trimmedInput = emailOrStudentId.trim();
 
-      const foundUser = users.find(
-        (u: any) => 
-          (u.email === trimmedInput || u.studentId === trimmedInput) && 
-          u.password === password
-      );
+      // Query database for matching user
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .or(`email.eq.${trimmedInput},student_id.eq.${trimmedInput}`)
+        .eq('password', password)
+        .maybeSingle();
 
-      if (foundUser) {
-        // Exclude password from user object in session
-        const { password: _, ...safeUser } = foundUser;
+      if (error) {
+        return { 
+          success: false, 
+          error: `เกิดข้อผิดพลาดในการตรวจสอบฐานข้อมูล: ${error.message} (ตรวจสอบว่าได้รันสคริปต์ใน SQL Editor แล้วยัง)` 
+        };
+      }
+
+      if (data) {
+        const safeUser: User = {
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          studentId: data.student_id || undefined,
+          role: data.role as any,
+          shopName: data.shop_name || undefined,
+          merchantType: data.merchant_type as any
+        };
+
         localStorage.setItem('psu_grab_session', JSON.stringify(safeUser));
-        setUser(safeUser as User);
+        setUser(safeUser);
         return { success: true };
       } else {
         return { success: false, error: 'อีเมล/รหัสนักศึกษา หรือรหัสผ่านไม่ถูกต้อง' };
       }
     } catch (e) {
-      return { success: false, error: 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ' };
+      return { success: false, error: 'เกิดข้อผิดพลาดในการล็อกอิน' };
     }
   };
 
-  const register = (userData: Omit<User, 'id'> & { password: string }) => {
+  const register = async (userData: Omit<User, 'id'> & { password: string }) => {
     try {
-      const usersJson = localStorage.getItem('psu_grab_users');
-      const users = usersJson ? JSON.parse(usersJson) : [];
+      const id = Math.random().toString(36).substr(2, 9); // Create a short text ID
 
-      // Check if user already exists
-      const emailExists = users.some((u: any) => u.email === userData.email);
-      const studentIdExists = userData.studentId 
-        ? users.some((u: any) => u.studentId === userData.studentId) 
-        : false;
+      // Insert new profile record
+      const { error } = await supabase
+        .from('profiles')
+        .insert([{
+          id,
+          name: userData.name,
+          email: userData.email,
+          phone: userData.phone,
+          student_id: userData.studentId || null,
+          role: userData.role,
+          shop_name: userData.shopName || null,
+          merchant_type: userData.merchantType || null,
+          password: userData.password
+        }]);
 
-      if (emailExists) {
-        return { success: false, error: 'อีเมลนี้ถูกใช้งานแล้ว' };
+      if (error) {
+        if (error.code === '23505') {
+          return { success: false, error: 'อีเมลนี้ถูกใช้งานแล้วในระบบ' };
+        }
+        return { success: false, error: `สมัครสมาชิกล้มเหลว: ${error.message} (ตรวจสอบว่าสร้างตาราง profiles หรือยัง)` };
       }
-      if (studentIdExists) {
-        return { success: false, error: 'รหัสนักศึกษานี้ถูกใช้งานแล้ว' };
+
+      // If registering as a merchant, insert initial products for that merchant
+      if (userData.role === 'merchant') {
+        const initialProducts = userData.merchantType === 'restaurant'
+          ? [
+              { id: `p1-${id}`, merchant_id: id, name: 'ข้าวกะเพราไก่ไข่ดาว', price: 50, category: 'อาหาร' },
+              { id: `p2-${id}`, merchant_id: id, name: 'ข้าวผัดต้มยำทะเล', price: 65, category: 'อาหาร' },
+              { id: `p3-${id}`, merchant_id: id, name: 'ชาเขียวนมสด (โรงช้าง)', price: 30, category: 'เครื่องดื่ม' }
+            ]
+          : [
+              { id: `p1-${id}`, merchant_id: id, name: 'น้ำดื่ม ม.อ. (ขวดใหญ่)', price: 12, category: 'เครื่องดื่ม' },
+              { id: `p2-${id}`, merchant_id: id, name: 'บะหมี่กึ่งสำเร็จรูปรสต้มยำ', price: 15, category: 'อาหารแห้ง' },
+              { id: `p3-${id}`, merchant_id: id, name: 'ขนมขบเคี้ยวตราก๊อบกอบ', price: 20, category: 'ของกินเล่น' }
+            ];
+            
+        await supabase.from('products').insert(initialProducts);
       }
 
-      const newUser = {
-        ...userData,
-        id: Math.random().toString(36).substr(2, 9),
-      };
-
-      users.push(newUser);
-      localStorage.setItem('psu_grab_users', JSON.stringify(users));
       return { success: true };
     } catch (e) {
-      return { success: false, error: 'เกิดข้อผิดพลาดในการสมัครสมาชิก' };
+      return { success: false, error: 'เกิดข้อผิดพลาดในการบันทึกข้อมูลสมัครสมาชิก' };
     }
   };
 

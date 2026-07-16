@@ -29,7 +29,7 @@ export default function LoginPage() {
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    const result = login(identifier, password);
+    const result = await login(identifier, password);
     setIsSubmitting(false);
 
     if (result.success) {

@@ -3,164 +3,374 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from './context/AuthContext';
+import { supabase } from './supabase';
 
 export default function Home() {
   const { user, loading, logout } = useAuth();
   
   // Custom states for interactive features
-  const [activeCategory, setActiveCategory] = useState<'all' | 'food' | 'ride' | 'express'>('all');
-  const [wallet, setWallet] = useState(350);
+  const [activeCategory, setActiveCategory] = useState<'all' | 'food'>('all');
   const [message, setMessage] = useState<string | null>(null);
-  
-  // Merchant Dashboard Specific States
-  const [merchantProducts, setMerchantProducts] = useState<{ id: number; name: string; price: number }[]>([]);
+  const [dbError, setDbError] = useState<boolean>(false);
+
+  // Customer states
+  const [merchants, setMerchants] = useState<any[]>([]);
+  const [selectedMerchant, setSelectedMerchant] = useState<any | null>(null);
+  const [selectedMerchantProducts, setSelectedMerchantProducts] = useState<any[]>([]);
+  const [cart, setCart] = useState<{ id: string; name: string; price: number; quantity: number }[]>([]);
+  const [deliveryDest, setDeliveryDest] = useState('');
+  const [customerOrders, setCustomerOrders] = useState<any[]>([]);
+
+  // Merchant states
+  const [merchantProducts, setMerchantProducts] = useState<any[]>([]);
   const [newProductName, setNewProductName] = useState('');
   const [newProductPrice, setNewProductPrice] = useState('');
-  
-  const [merchantOrders, setMerchantOrders] = useState<{
-    id: number;
-    items: string;
-    dest: string;
-    price: number;
-    status: 'pending' | 'preparing' | 'calling_rider' | 'completed';
-  }[]>([]);
+  const [merchantOrders, setMerchantOrders] = useState<any[]>([]);
+  const [merchantRevenue, setMerchantRevenue] = useState<number>(0);
 
-  // Seed Merchant details when logged in
-  useEffect(() => {
-    if (user && user.role === 'merchant') {
-      if (user.merchantType === 'restaurant') {
-        setMerchantProducts([
-          { id: 1, name: 'ข้าวกะเพราไก่ไข่ดาว', price: 50 },
-          { id: 2, name: 'ข้าวผัดต้มยำทะเล', price: 65 },
-          { id: 3, name: 'ชาเขียวนมสด (โรงช้าง)', price: 30 },
-        ]);
-        setMerchantOrders([
-          { id: 201, items: 'ข้าวกะเพราไก่ไข่ดาว 1 จาน + ชาเขียวนมสด', dest: 'หอพักนักศึกษา 11 (หอหญิง)', price: 80, status: 'pending' },
-          { id: 202, items: 'ข้าวผัดต้มยำทะเล 2 จาน', dest: 'ตึกคณะวิศวกรรมศาสตร์ ชั้น 4', price: 130, status: 'pending' },
-        ]);
-      } else {
-        setMerchantProducts([
-          { id: 1, name: 'น้ำดื่ม ม.อ. (ขวดใหญ่)', price: 12 },
-          { id: 2, name: 'บะหมี่กึ่งสำเร็จรูปรสต้มยำ', price: 15 },
-          { id: 3, name: 'ขนมขบเคี้ยวตราก๊อบกอบ', price: 20 },
-        ]);
-        setMerchantOrders([
-          { id: 301, items: 'น้ำดื่ม ม.อ. 5 ขวด + ขนมขบเคี้ยว 2 ซอง', dest: 'ตึก LRC ห้องสมุดชั้น 3', price: 100, status: 'pending' },
-          { id: 302, items: 'บะหมี่กึ่งสำเร็จรูป 10 ซอง', dest: 'หอพักนักศึกษา 9', price: 150, status: 'pending' },
-        ]);
-      }
+  // Rider states
+  const [riderJobs, setRiderJobs] = useState<any[]>([]);
+  const [riderHistory, setRiderHistory] = useState<any[]>([]);
+  const [riderWallet, setRiderWallet] = useState<number>(0);
+
+  // -------------------------------------------------------------
+  // CUSTOMER ACTIONS & SYNC
+  // -------------------------------------------------------------
+  const fetchMerchants = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'merchant');
+      if (error) throw error;
+      setMerchants(data || []);
+      setDbError(false);
+    } catch (err) {
+      console.error('Failed to fetch merchants', err);
+      setDbError(true);
     }
-  }, [user]);
+  };
 
-  // Mock food stores for Customer to order from
-  const mockStores = [
-    { id: 1, name: 'ข้าวมันไก่โกต๊อบ (โรงช้าง)', rating: '4.8 ★', time: '15-20 นาที', distance: '0.8 กม.', image: '🍗', category: 'food' },
-    { id: 2, name: 'เครปยักษ์หน้า ม.อ.', rating: '4.7 ★', time: '10-15 นาที', distance: '1.2 กม.', image: '🥞', category: 'food' },
-    { id: 3, name: 'ชานมไข่มุกตึกฟักทอง', rating: '4.9 ★', time: '5-10 นาที', distance: '0.2 กม.', image: '🧋', category: 'food' },
-  ];
+  const fetchSelectedMerchantProducts = async (merchantId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('merchant_id', merchantId);
+      if (error) throw error;
+      setSelectedMerchantProducts(data || []);
+    } catch (err) {
+      console.error('Failed to fetch products', err);
+    }
+  };
 
-  // Mock open jobs for Rider to accept
-  const [jobs, setJobs] = useState([
-    { id: 1, type: 'food', title: 'ข้าวมันไก่โกต๊อบ -> หอพัก 11', price: 25, distance: '1.2 กม.', time: '10 นาที' },
-    { id: 2, type: 'ride', title: 'ตึกวิศวกรรมศาสตร์ -> หน้า ม.อ.', price: 35, distance: '2.4 กม.', time: '15 นาที' },
-    { id: 3, type: 'express', title: 'ส่งเอกสารด่วน: ตึก LRC -> คณะวิทย์', price: 20, distance: '0.6 กม.', time: '5 นาที' },
-  ]);
+  const fetchCustomerOrders = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('customer_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setCustomerOrders(data || []);
+    } catch (err) {
+      console.error('Failed to fetch customer orders', err);
+    }
+  };
 
-  const [riderHistory, setRiderHistory] = useState([
-    { id: 101, title: 'ส่งข้าวผัดกระเพราไข่ดาว', income: 30, time: '12:30 น.' },
-    { id: 102, title: 'รับส่งนักศึกษา ตึกแดง -> หอ 9', income: 25, time: '11:15 น.' },
-  ]);
+  const handleAddToCart = (product: any) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.id === product.id);
+      if (existing) {
+        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      }
+      return [...prev, { id: product.id, name: product.name, price: product.price, quantity: 1 }];
+    });
+    setMessage(`เพิ่ม "${product.name}" ลงในตะกร้าแล้ว`);
+    setTimeout(() => setMessage(null), 2000);
+  };
 
-  // Handlers for Merchant Dashboard
-  const handleAddProduct = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProductName || !newProductPrice) return;
-    const price = parseFloat(newProductPrice);
-    if (isNaN(price)) {
-      alert('กรุณากรอกราคาเป็นตัวเลข');
+  const handleRemoveFromCart = (productId: string) => {
+    setCart(prev => prev.filter(item => item.id !== productId));
+  };
+
+  const handlePlaceOrder = async () => {
+    if (!user || !selectedMerchant || cart.length === 0) return;
+    if (!deliveryDest.trim()) {
+      alert('กรุณากรอกระบุสถานที่จัดส่งปลายทาง');
       return;
     }
-    
-    setMerchantProducts(prev => [
-      ...prev,
-      { id: Date.now(), name: newProductName, price }
-    ]);
-    setNewProductName('');
-    setNewProductPrice('');
-    
-    setMessage(`เพิ่มสินค้า/รายการ "${newProductName}" เรียบร้อย!`);
-    setTimeout(() => setMessage(null), 2500);
-  };
 
-  const handleDeleteProduct = (id: number, name: string) => {
-    setMerchantProducts(prev => prev.filter(p => p.id !== id));
-    setMessage(`ลบรายการ "${name}" ออกแล้ว`);
-    setTimeout(() => setMessage(null), 2500);
-  };
+    const orderId = 'ord-' + Math.random().toString(36).substr(2, 9);
+    const itemsText = cart.map(item => `${item.name} (${item.quantity}x)`).join(', ');
+    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0) + 15; // ฿15 delivery fee
 
-  const handleUpdateOrderStatus = (orderId: number, nextStatus: 'preparing' | 'calling_rider' | 'completed', price: number, items: string) => {
-    setMerchantOrders(prev => prev.map(order => {
-      if (order.id === orderId) {
-        return { ...order, status: nextStatus };
-      }
-      return order;
-    }));
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .insert([{
+          id: orderId,
+          customer_id: user.id,
+          customer_name: user.name,
+          merchant_id: selectedMerchant.id,
+          merchant_name: selectedMerchant.shopName || selectedMerchant.name,
+          items: itemsText,
+          total_price: total,
+          dest: deliveryDest.trim(),
+          status: 'pending'
+        }]);
 
-    if (nextStatus === 'preparing') {
-      setMessage(`รับออเดอร์ "${items}" แล้ว! เริ่มขั้นตอนจัดเตรียมสินค้า`);
-    } else if (nextStatus === 'calling_rider') {
-      setMessage(`เตรียมสินค้าเสร็จสิ้น! กำลังเรียกไรเดอร์ PSU Grab มารับของ...`);
-      
-      // Simulate rider arriving and picking up after 2.5 seconds
-      setTimeout(() => {
-        setMerchantOrders(prev => prev.map(order => {
-          if (order.id === orderId) {
-            return { ...order, status: 'completed' };
-          }
-          return order;
-        }));
-        setWallet(prev => prev + price);
-        setMessage(`ไรเดอร์นำส่งสินค้าสำเร็จ! รายได้ ฿${price} โอนเข้าบัญชีร้านเรียบร้อย 💰`);
-        setTimeout(() => setMessage(null), 3500);
-      }, 2500);
+      if (error) throw error;
+
+      setCart([]);
+      setDeliveryDest('');
+      setSelectedMerchant(null);
+      setMessage(`สั่งสินค้าเรียบร้อย! ส่งคำสั่งซื้อไปยังร้านค้าแล้ว 🍔`);
+      fetchCustomerOrders();
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      alert(`สั่งซื้อล้มเหลว: ${err.message}`);
     }
-    
-    setTimeout(() => {
-      if (nextStatus !== 'calling_rider') setMessage(null);
-    }, 2500);
   };
 
-  // Handlers for Customer / Rider Dashboard
-  const handleOrderFood = (storeName: string) => {
-    setMessage(`สั่งซื้อจาก "${storeName}" สำเร็จ! ไรเดอร์กำลังเตรียมรับงานของคุณ 🛵`);
-    setTimeout(() => setMessage(null), 3500);
+  // -------------------------------------------------------------
+  // MERCHANT ACTIONS & SYNC
+  // -------------------------------------------------------------
+  const fetchMerchantProducts = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('merchant_id', user.id);
+      if (error) throw error;
+      setMerchantProducts(data || []);
+    } catch (err) {
+      console.error('Failed to fetch merchant products', err);
+    }
   };
 
-  const handleBookRide = (destination: string) => {
-    setMessage(`กำลังเรียกคนขับมารับคุณเพื่อเดินทางไปยัง "${destination}"... 🛵`);
-    setTimeout(() => setMessage(null), 3500);
+  const fetchMerchantOrders = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('merchant_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setMerchantOrders(data || []);
+      
+      // Calculate revenue
+      const totalRev = (data || [])
+        .filter((o: any) => o.status === 'completed')
+        .reduce((sum: number, o: any) => sum + o.total_price - 15, 0); // subtract delivery fee
+      setMerchantRevenue(totalRev);
+    } catch (err) {
+      console.error('Failed to fetch merchant orders', err);
+    }
   };
 
-  const handleAcceptJob = (jobId: number, price: number, title: string) => {
-    setJobs(jobs.filter(j => j.id !== jobId));
-    setWallet(prev => prev + price);
-    setRiderHistory(prev => [
-      { id: Date.now(), title: `สำเร็จ: ${title}`, income: price, time: 'เมื่อครู่นี้' },
-      ...prev
-    ]);
-    setMessage(`รับงาน "${title}" สำเร็จ! ได้รับเงินโอนเข้ากระเป๋า ฿${price}`);
-    setTimeout(() => setMessage(null), 3000);
+  const handleAddProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !newProductName || !newProductPrice) return;
+    const price = parseFloat(newProductPrice);
+    if (isNaN(price) || price <= 0) {
+      alert('กรุณากรอกราคาที่ถูกต้อง');
+      return;
+    }
+
+    const prodId = 'prod-' + Math.random().toString(36).substr(2, 9);
+    try {
+      const { error } = await supabase
+        .from('products')
+        .insert([{
+          id: prodId,
+          merchant_id: user.id,
+          name: newProductName,
+          price: price
+        }]);
+
+      if (error) throw error;
+
+      setNewProductName('');
+      setNewProductPrice('');
+      setMessage(`เพิ่มรายการ "${newProductName}" เข้าร้านค้าสำเร็จ!`);
+      fetchMerchantProducts();
+      setTimeout(() => setMessage(null), 2000);
+    } catch (err: any) {
+      alert(`เพิ่มสินค้าล้มเหลว: ${err.message}`);
+    }
+  };
+
+  const handleDeleteProduct = async (id: string, name: string) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+
+      setMessage(`ลบรายการ "${name}" เรียบร้อย`);
+      fetchMerchantProducts();
+      setTimeout(() => setMessage(null), 2000);
+    } catch (err: any) {
+      alert(`ลบสินค้าล้มเหลว: ${err.message}`);
+    }
+  };
+
+  const handleMerchantUpdateStatus = async (orderId: string, nextStatus: 'preparing' | 'calling_rider', items: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: nextStatus })
+        .eq('id', orderId);
+      if (error) throw error;
+
+      setMessage(nextStatus === 'preparing' ? `รับออเดอร์ "${items}" แล้ว` : `จัดส่งเสร็จสิ้น! เรียกไรเดอร์เข้ามารับงาน 🛵`);
+      fetchMerchantOrders();
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      alert(`อัปเดตสถานะล้มเหลว: ${err.message}`);
+    }
+  };
+
+  // -------------------------------------------------------------
+  // RIDER ACTIONS & SYNC
+  // -------------------------------------------------------------
+  const fetchRiderJobs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('status', 'calling_rider')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setRiderJobs(data || []);
+    } catch (err) {
+      console.error('Failed to fetch rider jobs', err);
+    }
+  };
+
+  const fetchRiderHistory = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('rider_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setRiderHistory(data || []);
+
+      // Rider earns delivery fee (฿15 per delivery)
+      const walletSum = (data || [])
+        .filter((o: any) => o.status === 'completed')
+        .length * 15;
+      setRiderWallet(walletSum);
+    } catch (err) {
+      console.error('Failed to fetch rider history', err);
+    }
+  };
+
+  const handleRiderAcceptJob = async (orderId: string, title: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          status: 'delivering',
+          rider_id: user.id,
+          rider_name: user.name
+        })
+        .eq('id', orderId);
+      if (error) throw error;
+
+      setMessage(`รับงานสำเร็จ! กำลังเดินทางไปรับสินค้าที่ร้านเพื่อจัดส่ง 🛵`);
+      fetchRiderJobs();
+      fetchRiderHistory();
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      alert(`รับงานล้มเหลว: ${err.message}`);
+    }
+  };
+
+  const handleRiderCompleteJob = async (orderId: string, title: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'completed' })
+        .eq('id', orderId);
+      if (error) throw error;
+
+      setMessage(`จัดส่งงาน "${title}" สำเร็จแล้ว! ได้รับค่าส่ง ฿15 💰`);
+      fetchRiderJobs();
+      fetchRiderHistory();
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      alert(`อัปเดตงานล้มเหลว: ${err.message}`);
+    }
   };
 
   const handleWithdraw = () => {
-    if (wallet <= 0) {
-      alert('ยอดเงินในกระเป๋าของคุณไม่เพียงพอสำหรับการถอน');
+    const amount = user?.role === 'rider' ? riderWallet : merchantRevenue;
+    if (amount <= 0) {
+      alert('ยอดเงินสะสมของคุณไม่เพียงพอสำหรับการถอน');
       return;
     }
-    alert(`ระบบทำการโอนเงิน ฿${wallet} เข้าบัญชีธนาคารของคุณสำเร็จแล้ว!`);
-    setWallet(0);
+    alert(`ถอนเงินสำเร็จ! โอนยอดเงิน ฿${amount} เข้าบัญชีธนาคารแล้ว`);
+    // Local simulation reset for withdraw
+    if (user?.role === 'rider') setRiderWallet(0);
+    else setMerchantRevenue(0);
   };
 
+  // -------------------------------------------------------------
+  // REAL-TIME DATABASE SUBSCRIPTIONS & EFFECT LOADS
+  // -------------------------------------------------------------
+  useEffect(() => {
+    if (loading) return;
+
+    // Load initial data
+    if (!user) {
+      fetchMerchants();
+    } else {
+      if (user.role === 'customer') {
+        fetchMerchants();
+        fetchCustomerOrders();
+      } else if (user.role === 'merchant') {
+        fetchMerchantProducts();
+        fetchMerchantOrders();
+      } else if (user.role === 'rider') {
+        fetchRiderJobs();
+        fetchRiderHistory();
+      }
+    }
+
+    // Subscribe to all changes in orders table to update statuses across screens
+    const ordersChannel = supabase
+      .channel('orders-realtime-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
+        if (!user) return;
+        
+        // Refresh states depending on user role
+        if (user.role === 'customer') {
+          fetchCustomerOrders();
+        } else if (user.role === 'merchant') {
+          fetchMerchantOrders();
+        } else if (user.role === 'rider') {
+          fetchRiderJobs();
+          fetchRiderHistory();
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ordersChannel);
+    };
+  }, [user, loading]);
+
+  // Loading skeleton screen
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
@@ -169,14 +379,14 @@ export default function Home() {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
-          <span className="text-sm font-semibold text-slate-500">กำลังโหลด PSU Grab...</span>
+          <span className="text-sm font-semibold text-slate-500">กำลังเชื่อมต่อข้อมูล PSU Grab...</span>
         </div>
       </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col antialiased">
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col antialiased font-sans">
       {/* Sticky Header */}
       <header className="sticky top-0 bg-white border-b border-slate-100 z-50 shadow-sm">
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -198,7 +408,11 @@ export default function Home() {
                       ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
                       : 'bg-indigo-50 text-indigo-600 border border-indigo-100'
                   }`}>
-                    {user.role === 'customer' ? 'ลูกค้า' : user.role === 'rider' ? 'คนขับ / ไรเดอร์' : `ร้านค้า (${user.merchantType === 'restaurant' ? 'ร้านอาหาร' : 'มินิมาร์ท'})`}
+                    {user.role === 'customer' 
+                      ? 'ลูกค้า' 
+                      : user.role === 'rider' 
+                      ? 'คนขับ / ไรเดอร์' 
+                      : `ร้าน: ${user.shopName} (${user.merchantType === 'restaurant' ? 'อาหาร' : 'มาร์ท'})`}
                   </span>
                 </div>
                 <button
@@ -238,6 +452,14 @@ export default function Home() {
         </div>
       )}
 
+      {/* Database Setup Warning */}
+      {dbError && (
+        <div className="bg-red-50 border-y border-red-200 py-3 text-center text-xs text-red-700 font-bold flex items-center justify-center gap-2 animate-fade-in">
+          <span>⚠️ ตรวจพบล้มเหลวในการเชื่อมดาต้าเบส Supabase กรุณาเปิด SQL Editor ใน Supabase แล้วรันเนื้อหาในไฟล์ schema.sql เพื่อเริ่มระบบที่ถูกต้อง!</span>
+          <Link href="/schema.sql" className="underline hover:text-red-900">ดูสคริปต์ SQL</Link>
+        </div>
+      )}
+
       {/* Main Body */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 md:p-8 space-y-8">
 
@@ -255,27 +477,27 @@ export default function Home() {
 
               <div className="relative z-10 space-y-5 lg:max-w-xl text-center lg:text-left">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white/20 text-white border border-white/10">
-                  📍 พัฒนาขึ้นเฉพาะชาว ม.อ. วิทยาเขตหาดใหญ่
+                  📍 ทำงานแบบเชื่อมโยงกันจริง (Real-time Connect)
                 </span>
                 <h1 className="text-3xl md:text-5xl font-black leading-tight">
                   สั่งอาหารก็ง่าย <br className="hidden md:inline" />
                   เดินทางก็สบายกับ <span className="underline decoration-wavy decoration-yellow-400">PSU Grab</span>
                 </h1>
                 <p className="text-blue-100 text-sm md:text-base font-medium leading-relaxed">
-                  ครบจบในเว็บเดียว ทั้งบริการสั่งซื้ออาหาร ของชำ รวมถึงการเรียกรถมอเตอร์ไซค์ด่วน สะดวก รวดเร็ว สบายกระเป๋าสำหรับคนในวิทยาเขต
+                  เชื่อมโยงผู้ใช้ใน ม.อ. ครบทั้งระบบ: ลูกค้าสร้างออเดอร์ ➔ ร้านค้าจัดเตรียมและรับรายการ ➔ ไรเดอร์รับและจัดส่งถึงที่แบบเรียลไทม์ผ่าน Supabase
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start pt-2">
                   <Link
                     href="/login"
                     className="px-8 py-4 bg-white hover:bg-slate-50 text-blue-600 font-extrabold rounded-2xl text-center shadow-lg transition hover:-translate-y-0.5 duration-300"
                   >
-                    เริ่มต้นใช้งาน
+                    เข้าสู่ระบบทดสอบ
                   </Link>
                   <Link
                     href="/register"
                     className="px-8 py-4 bg-blue-500/30 hover:bg-blue-500/50 text-white font-extrabold rounded-2xl text-center border border-white/20 transition hover:-translate-y-0.5 duration-300"
                   >
-                    สมัครร้านค้า / ไรเดอร์พาร์ทเนอร์
+                    สมัครสมาชิกร้านค้า / ไรเดอร์
                   </Link>
                 </div>
               </div>
@@ -284,13 +506,12 @@ export default function Home() {
               <div className="relative z-10 w-full max-w-sm bg-white text-slate-800 rounded-3xl p-6 shadow-2xl border border-slate-100/50 self-stretch flex flex-col justify-between">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-extrabold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">บริการยอดนิยม</span>
-                    <span className="text-[11px] font-semibold text-slate-400">เข้าสู่ระบบเพื่อใช้งาน</span>
+                    <span className="text-xs font-extrabold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">บริการเชื่อมโยง</span>
+                    <span className="text-[11px] font-semibold text-slate-400">เข้าสู่ระบบเพื่อทดสอบ</span>
                   </div>
-                  {/* Mock search input */}
                   <div className="bg-slate-100 p-3 rounded-2xl flex items-center gap-2 text-slate-400 text-xs border border-slate-200/50">
                     <span>🔍</span>
-                    <span>ค้นหาร้านค้า หรือบริการใน ม.อ.</span>
+                    <span>ค้นหาร้านอาหาร หรือจุดรับส่งใน ม.อ.</span>
                   </div>
                 </div>
 
@@ -298,7 +519,7 @@ export default function Home() {
                 <div className="grid grid-cols-4 gap-3 my-6">
                   <Link href="/login" className="flex flex-col items-center gap-1.5 group">
                     <div className="w-12 h-12 bg-blue-50 group-hover:bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl transition duration-300 shadow-sm">🍔</div>
-                    <span className="text-[11px] font-bold text-slate-600">ส่งอาหาร</span>
+                    <span className="text-[11px] font-bold text-slate-600">สั่งอาหาร</span>
                   </Link>
                   <Link href="/login" className="flex flex-col items-center gap-1.5 group">
                     <div className="w-12 h-12 bg-blue-50 group-hover:bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl transition duration-300 shadow-sm">🛵</div>
@@ -315,35 +536,8 @@ export default function Home() {
                 </div>
 
                 <div className="border-t border-slate-100 pt-4 flex justify-between items-center">
-                  <span className="text-[11px] text-slate-400 font-semibold">มีรหัสนักศึกษาลดค่าส่งเพิ่ม!</span>
+                  <span className="text-[11px] text-slate-400 font-semibold">รองรับระบบเรียลไทม์สด</span>
                   <Link href="/login" className="text-xs font-bold text-blue-600 hover:underline">คลิกล็อกอิน →</Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Promo slider */}
-            <div className="space-y-4">
-              <h2 className="text-xl font-extrabold text-slate-800 flex items-center gap-2">
-                🔥 โปรโมชันสุดคุ้มประจำวิทยาเขต
-              </h2>
-              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-none">
-                <div className="min-w-[280px] md:min-w-[320px] bg-gradient-to-r from-blue-500 to-indigo-600 p-6 rounded-3xl text-white shadow-md flex-1">
-                  <p className="text-[10px] font-bold tracking-widest uppercase text-blue-100">สำหรับลูกค้ารายใหม่</p>
-                  <h3 className="text-lg font-black mt-1 mb-2">ลด 50% ต้อนรับชาว ม.อ.</h3>
-                  <p className="text-xs text-blue-100 mb-4">ใส่โค้ด: <span className="font-bold bg-white/20 px-2 py-0.5 rounded-lg text-white">PSUNEW50</span></p>
-                  <span className="text-[10px] bg-white text-blue-600 px-3 py-1 rounded-full font-bold">ใช้ได้ทันที</span>
-                </div>
-                <div className="min-w-[280px] md:min-w-[320px] bg-gradient-to-r from-cyan-500 to-blue-600 p-6 rounded-3xl text-white shadow-md flex-1">
-                  <p className="text-[10px] font-bold tracking-widest uppercase text-blue-100">โปรขวัญใจหอพัก</p>
-                  <h3 className="text-lg font-black mt-1 mb-2">ส่งฟรีทั่วทุกหอใน</h3>
-                  <p className="text-xs text-blue-100 mb-4">ค่าบริการส่งฟรีเมื่อมียอดครบ ฿120 ขึ้นไป</p>
-                  <span className="text-[10px] bg-white text-blue-600 px-3 py-1 rounded-full font-bold">คุ้มตลอดวัน</span>
-                </div>
-                <div className="min-w-[280px] md:min-w-[320px] bg-gradient-to-r from-indigo-600 to-slate-800 p-6 rounded-3xl text-white shadow-md flex-1">
-                  <p className="text-[10px] font-bold tracking-widest uppercase text-slate-100">สิทธิร้านค้าพาร์ทเนอร์</p>
-                  <h3 className="text-lg font-black mt-1 mb-2">ขยายฐานลูกค้าใน ม.อ.</h3>
-                  <p className="text-xs text-slate-100 mb-4">ลงทะเบียนร้านค้าฟรีและจัดการสินค้าได้อิสระ</p>
-                  <span className="text-[10px] bg-white text-blue-600 px-3 py-1 rounded-full font-bold">สมัครเลย</span>
                 </div>
               </div>
             </div>
@@ -353,12 +547,12 @@ export default function Home() {
         {/* CASE 2: CUSTOMER DASHBOARD */}
         {user && user.role === 'customer' && (
           <div className="space-y-8 py-2 animate-fade-in">
-            {/* Soft Header Profile */}
+            {/* Header profile */}
             <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="space-y-1">
-                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">ยินดีต้อนรับกลับ</span>
+                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">ลูกค้าระบบเรียลไทม์</span>
                 <h2 className="text-2xl font-black text-slate-800 mt-2">สวัสดีคุณ {user.name} 👋</h2>
-                <p className="text-xs text-slate-400">รหัสนักศึกษา/อีเมลผู้ใช้: {user.studentId || user.email}</p>
+                <p className="text-xs text-slate-400">ค้นหาร้านเด็ดและส่งคำสั่งซื้อของคุณเข้าสู่ศูนย์กลาง PSU Grab ได้ทันที</p>
               </div>
               <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
                 <button
@@ -367,130 +561,205 @@ export default function Home() {
                     activeCategory === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  ทั้งหมด
-                </button>
-                <button
-                  onClick={() => setActiveCategory('food')}
-                  className={`px-4 py-2 text-xs font-extrabold rounded-lg transition-all ${
-                    activeCategory === 'food' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  🍔 สั่งอาหาร
+                  ร้านค้าพาร์ทเนอร์
                 </button>
               </div>
             </div>
 
-            {/* Quick Actions Grid for Customer */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Shopping & Ordering Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               
-              {/* Booking & Ordering Area */}
-              <div className="lg:col-span-2 space-y-6">
+              {/* Left Column: Stores & Cart */}
+              <div className="lg:col-span-8 space-y-6">
                 
-                {/* 1. Quick Booking Ride Card */}
-                {(activeCategory === 'all') && (
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
-                    <h3 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
-                      <span>🛵</span> เรียกรถรับ-ส่งทันที (GrabRide)
-                    </h3>
-                    <p className="text-xs text-slate-400 leading-relaxed">
-                      ระบุพิกัดปลายทางที่ต้องการไปใน ม.อ. เพื่อเรียกรถมอเตอร์ไซค์จากนักศึกษาพาร์ทเนอร์ของเราได้อย่างรวดเร็ว
-                    </p>
-                    
-                    {/* Mock Destinations */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-2">
+                {/* 1. Shop list or Selected Shop Products */}
+                {!selectedMerchant ? (
+                  <div className="space-y-4">
+                    <h3 className="text-base font-extrabold text-slate-800">🏪 เลือกร้านค้าจำลองในวิทยาเขต (ดึงข้อมูลตรงจาก Supabase)</h3>
+                    {merchants.length === 0 ? (
+                      <div className="bg-white rounded-3xl p-8 border border-slate-100 text-center text-xs text-slate-400">
+                        ไม่พบร้านค้าพาร์ทเนอร์ลงทะเบียนในระบบ Supabase (กรุณาลองลงทะเบียนร้านค้าใหม่ หรือรัน schema.sql)
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {merchants.map((merchant) => (
+                          <div 
+                            key={merchant.id} 
+                            onClick={() => {
+                              setSelectedMerchant(merchant);
+                              fetchSelectedMerchantProducts(merchant.id);
+                            }}
+                            className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition duration-300 flex items-center justify-between cursor-pointer group"
+                          >
+                            <div className="flex items-center gap-4">
+                              <span className="text-3xl">{merchant.merchant_type === 'restaurant' ? '🍔' : '🛒'}</span>
+                              <div className="space-y-0.5">
+                                <h4 className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition">
+                                  {merchant.shop_name || merchant.name}
+                                </h4>
+                                <p className="text-[10px] text-slate-400 font-semibold">
+                                  หมวดหมู่: {merchant.merchant_type === 'restaurant' ? 'ร้านอาหาร' : 'มินิมาร์ท'}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="text-xs text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition duration-300 font-bold">
+                              เข้าร้านค้า →
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4 animate-fade-in">
+                    <div className="flex justify-between items-center">
                       <button
-                        onClick={() => handleBookRide('ตึกฟักทอง คณะวิทยาศาสตร์')}
-                        className="p-3 bg-slate-50 hover:bg-blue-50 hover:text-blue-600 rounded-2xl text-left border border-slate-100 hover:border-blue-100 transition duration-300 font-bold text-xs flex flex-col justify-between h-20 cursor-pointer"
+                        onClick={() => setSelectedMerchant(null)}
+                        className="text-xs font-bold text-slate-400 hover:text-slate-600 flex items-center gap-1.5"
                       >
-                        <span>ตึกฟักทอง คณะวิทย์</span>
-                        <span className="text-[10px] font-semibold text-slate-400">ใช้บ่อย 📍</span>
+                        ← ย้อนกลับไปเลือกร้านค้า
                       </button>
-                      <button
-                        onClick={() => handleBookRide('สำนักทรัพยากรการเรียนรู้ (ตึก LRC)')}
-                        className="p-3 bg-slate-50 hover:bg-blue-50 hover:text-blue-600 rounded-2xl text-left border border-slate-100 hover:border-blue-100 transition duration-300 font-bold text-xs flex flex-col justify-between h-20 cursor-pointer"
-                      >
-                        <span>ตึก LRC (หอสมุด)</span>
-                        <span className="text-[10px] font-semibold text-slate-400">ใช้บ่อย 📍</span>
-                      </button>
-                      <button
-                        onClick={() => handleBookRide('โรงช้าง (ศูนย์อาหาร ม.อ.)')}
-                        className="p-3 bg-slate-50 hover:bg-blue-50 hover:text-blue-600 rounded-2xl text-left border border-slate-100 hover:border-blue-100 transition duration-300 font-bold text-xs flex flex-col justify-between h-20 cursor-pointer"
-                      >
-                        <span>โรงช้าง ม.อ.</span>
-                        <span className="text-[10px] font-semibold text-slate-400">เดินทาง 📍</span>
-                      </button>
+                      <h3 className="text-sm font-black text-blue-600 uppercase">
+                        {selectedMerchant.shop_name || selectedMerchant.name}
+                      </h3>
+                    </div>
+
+                    <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">รายการสินค้าในร้าน:</h4>
+                      {selectedMerchantProducts.length === 0 ? (
+                        <p className="text-xs text-slate-400 py-4 text-center">ไม่มีรายการสินค้าจัดแสดงในขณะนี้</p>
+                      ) : (
+                        <div className="divide-y divide-slate-100">
+                          {selectedMerchantProducts.map((prod) => (
+                            <div key={prod.id} className="py-3 flex justify-between items-center text-xs">
+                              <div>
+                                <p className="font-bold text-slate-700">{prod.name}</p>
+                                <p className="font-bold text-blue-600 mt-0.5">฿{prod.price}</p>
+                              </div>
+                              <button
+                                onClick={() => handleAddToCart(prod)}
+                                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-extrabold rounded-lg transition cursor-pointer"
+                              >
+                                + ใส่ตะกร้า
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
+              </div>
 
-                {/* 2. Restaurants Section */}
-                {(activeCategory === 'all' || activeCategory === 'food') && (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-extrabold text-slate-800">
-                      🍔 สั่งอาหารจากร้านเด่นใน ม.อ. (GrabFood)
+              {/* Right Column: Checkout Cart & Active Orders Feed */}
+              <div className="lg:col-span-4 space-y-6">
+                
+                {/* Checkout Cart Container */}
+                {cart.length > 0 && (
+                  <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-md space-y-4 animate-slide-up">
+                    <h3 className="text-sm font-bold text-slate-800 pb-2 border-b border-slate-100">
+                      🛒 ตะกร้าสินค้าของคุณ ({selectedMerchant?.shop_name || selectedMerchant?.name})
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {mockStores.map((store) => (
-                        <div key={store.id} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition duration-300 flex flex-col justify-between space-y-4">
-                          <div className="space-y-2">
-                            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-2xl font-bold">{store.image}</div>
-                            <div>
-                              <h4 className="text-sm font-bold text-slate-800 leading-tight">{store.name}</h4>
-                              <div className="flex gap-2 items-center text-[10px] text-slate-400 mt-1 font-semibold">
-                                <span className="text-amber-500">{store.rating}</span>
-                                <span>•</span>
-                                <span>{store.time}</span>
-                                <span>•</span>
-                                <span>{store.distance}</span>
-                              </div>
-                            </div>
+                    <div className="divide-y divide-slate-100 text-xs">
+                      {cart.map((item) => (
+                        <div key={item.id} className="py-2.5 flex justify-between items-center">
+                          <div>
+                            <p className="font-bold text-slate-700">{item.name}</p>
+                            <p className="text-[10px] text-slate-400">{item.quantity}x • ฿{item.price * item.quantity}</p>
                           </div>
                           <button
-                            onClick={() => handleOrderFood(store.name)}
-                            className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold rounded-xl transition cursor-pointer"
+                            onClick={() => handleRemoveFromCart(item.id)}
+                            className="text-[10px] font-semibold text-slate-400 hover:text-red-500 transition cursor-pointer"
                           >
-                            สั่งซื้อทันที
+                            ลบออก
                           </button>
                         </div>
                       ))}
                     </div>
+
+                    <div className="border-t border-slate-100 pt-3 space-y-1.5 text-xs">
+                      <div className="flex justify-between font-medium">
+                        <span className="text-slate-500">ราคาสินค้า</span>
+                        <span>฿{cart.reduce((sum, item) => sum + item.price * item.quantity, 0)}</span>
+                      </div>
+                      <div className="flex justify-between font-medium">
+                        <span className="text-slate-500">ค่าจัดส่งโดยไรเดอร์</span>
+                        <span className="text-blue-600 font-bold">฿15</span>
+                      </div>
+                      <div className="flex justify-between font-black text-sm border-t border-slate-100 pt-2 text-slate-800">
+                        <span>ราคารวมทั้งหมด</span>
+                        <span>฿{cart.reduce((sum, item) => sum + item.price * item.quantity, 0) + 15}</span>
+                      </div>
+                    </div>
+
+                    {/* Delivery Destination Input */}
+                    <div className="space-y-1 pt-2">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">ระบุปลายทางรับของใน ม.อ. <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        value={deliveryDest}
+                        onChange={(e) => setDeliveryDest(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                        placeholder="เช่น หอ 11 ห้อง 420 หรือ ตึกวิศวะชั้น 2"
+                        required
+                      />
+                    </div>
+
+                    <button
+                      onClick={handlePlaceOrder}
+                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition duration-300 shadow shadow-blue-100 cursor-pointer"
+                    >
+                      ยืนยันการสั่งซื้ออาหาร/ของชำ
+                    </button>
                   </div>
                 )}
 
-              </div>
-
-              {/* Sidebar Info */}
-              <div className="space-y-6">
-                <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-3xl p-6 shadow-md space-y-4">
-                  <h4 className="text-sm font-bold tracking-wider uppercase text-blue-100">โปรโมชันพิเศษเฉพาะคุณ</h4>
-                  <div className="border-t border-white/10 pt-3">
-                    <h3 className="text-base font-extrabold">โค้ดลดค่าส่งพิเศษ ฿15</h3>
-                    <p className="text-xs text-blue-100 mt-1">ใช้โค้ดลดทันทีไม่มีขั้นต่ำสำหรับหอใน ม.อ.</p>
-                    <div className="bg-white/15 border border-white/10 rounded-xl p-2.5 mt-3 text-center text-xs font-bold font-mono tracking-wider">
-                      PSURIDE15
+                {/* Customer Active Orders Tracker */}
+                <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+                  <h3 className="text-sm font-bold text-slate-800 pb-2 border-b border-slate-100">
+                    🔔 ออเดอร์และสถานะเดินทางสด (Real-time Tracker)
+                  </h3>
+                  {customerOrders.length === 0 ? (
+                    <p className="text-xs text-slate-400 py-4 text-center">ไม่มีรายการออเดอร์ในปัจจุบัน</p>
+                  ) : (
+                    <div className="divide-y divide-slate-100 max-h-[300px] overflow-y-auto pr-1">
+                      {customerOrders.map((order) => (
+                        <div key={order.id} className="py-4 space-y-1.5 text-xs">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-slate-700">{order.merchant_name}</span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded font-extrabold uppercase ${
+                              order.status === 'pending'
+                                ? 'bg-amber-50 text-amber-600 border border-amber-100'
+                                : order.status === 'preparing'
+                                ? 'bg-indigo-50 text-indigo-600 border border-indigo-100'
+                                : order.status === 'calling_rider'
+                                ? 'bg-purple-50 text-purple-600 border border-purple-100'
+                                : order.status === 'delivering'
+                                ? 'bg-blue-50 text-blue-600 border border-blue-100 animate-pulse'
+                                : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                            }`}>
+                              {order.status === 'pending' && 'รอรับออเดอร์'}
+                              {order.status === 'preparing' && 'กำลังจัดปรุง'}
+                              {order.status === 'calling_rider' && 'กำลังเรียกคนขับ'}
+                              {order.status === 'delivering' && 'กำลังจัดส่ง'}
+                              {order.status === 'completed' && 'ส่งเรียบร้อยแล้ว'}
+                            </span>
+                          </div>
+                          <p className="text-slate-500 text-[10px] leading-relaxed">{order.items}</p>
+                          <p className="text-[10px] text-slate-400">
+                            ยอดชำระ: <b>฿{order.total_price}</b> • ปลายทาง: <b>{order.dest}</b>
+                          </p>
+                          {order.rider_name && (
+                            <p className="text-[9px] text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded">
+                              🏍️ ไรเดอร์ผู้จัดส่ง: คุณ {order.rider_name}
+                            </p>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  </div>
+                  )}
                 </div>
 
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
-                  <h4 className="text-sm font-bold text-slate-800 pb-2 border-b border-slate-100">ประวัติการเดินทาง / สั่งซื้อ</h4>
-                  <div className="divide-y divide-slate-100 text-xs">
-                    <div className="py-3 flex justify-between">
-                      <div>
-                        <p className="font-bold text-slate-700">สั่งข้าวมันไก่โกต๊อบ (โรงช้าง)</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">วันนี้ 12:45 น. • GrabFood</p>
-                      </div>
-                      <span className="font-bold text-emerald-600">สำเร็จแล้ว</span>
-                    </div>
-                    <div className="py-3 flex justify-between">
-                      <div>
-                        <p className="font-bold text-slate-700">เรียกมอเตอร์ไซค์ ตึกแดง -&gt; หอ 11</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">เมื่อวาน 16:30 น. • GrabRide</p>
-                      </div>
-                      <span className="font-bold text-emerald-600">สำเร็จแล้ว</span>
-                    </div>
-                  </div>
-                </div>
               </div>
 
             </div>
@@ -500,95 +769,133 @@ export default function Home() {
         {/* CASE 3: RIDER DASHBOARD */}
         {user && user.role === 'rider' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 py-2 animate-fade-in">
+            {/* Left stats */}
             <div className="lg:col-span-4 space-y-6">
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 text-center space-y-5">
                 <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto text-3xl font-bold">🛵</div>
                 <div>
                   <h3 className="text-lg font-black text-slate-800">{user.name}</h3>
-                  <p className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full inline-block mt-1">
-                    พาร์ทเนอร์คนขับ PSU Grab
+                  <p className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full inline-block mt-1 uppercase">
+                    พาร์ทเนอร์คนขับระบบเรียลไทม์
                   </p>
                 </div>
                 
                 <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 text-left space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">รายได้คงเหลือ (กระเป๋าเงิน)</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">กระเป๋าเงินของคุณ (รวมสะสม)</span>
                   <div className="flex justify-between items-baseline">
-                    <span className="text-3xl font-black text-blue-600">฿{wallet.toLocaleString()}</span>
+                    <span className="text-3xl font-black text-blue-600">฿{riderWallet.toLocaleString()}</span>
                     <button
                       onClick={handleWithdraw}
                       className="text-xs font-bold text-blue-600 hover:underline cursor-pointer"
                     >
-                      ถอนเงิน →
+                      ถอนรายได้ →
                     </button>
                   </div>
                 </div>
               </div>
 
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
-                <h4 className="text-sm font-bold text-slate-800">ผลงานในวันนี้ของคุณ</h4>
+                <h4 className="text-sm font-bold text-slate-800">ประสิทธิภาพการวิ่งงานวันนี้</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-slate-50 p-4 rounded-2xl text-center">
                     <p className="text-[10px] font-bold text-slate-400 mb-0.5">รับงานสำเร็จ</p>
-                    <p className="text-lg font-bold text-slate-800">{riderHistory.length} งาน</p>
+                    <p className="text-lg font-bold text-slate-800">
+                      {riderHistory.filter(o => o.status === 'completed').length} งาน
+                    </p>
                   </div>
                   <div className="bg-slate-50 p-4 rounded-2xl text-center">
-                    <p className="text-[10px] font-bold text-slate-400 mb-0.5">เรทผู้ขับขี่</p>
-                    <p className="text-lg font-bold text-slate-800">4.9 ★</p>
+                    <p className="text-[10px] font-bold text-slate-400 mb-0.5">คะแนนสะสม</p>
+                    <p className="text-lg font-bold text-slate-800">5.0 ★</p>
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* Right Feed (Available Jobs & active jobs) */}
             <div className="lg:col-span-8 space-y-6">
+              
+              {/* Rider Active Jobs */}
+              {riderHistory.some(o => o.status === 'delivering') && (
+                <div className="bg-white rounded-3xl p-6 border-2 border-blue-500 shadow-md space-y-4 animate-slide-up">
+                  <h3 className="text-sm font-black text-blue-600 uppercase flex items-center gap-2">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
+                    </span>
+                    งานจัดส่งที่กำลังดำเนินการ (Active Route)
+                  </h3>
+
+                  {riderHistory.filter(o => o.status === 'delivering').map((activeOrder) => (
+                    <div key={activeOrder.id} className="p-5 border border-blue-100 bg-blue-50/20 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div className="space-y-1.5 text-xs">
+                        <p className="font-bold text-slate-800 text-sm">รับของที่: {activeOrder.merchant_name}</p>
+                        <p className="font-semibold text-slate-500">นำไปส่งที่: {activeOrder.dest}</p>
+                        <p className="text-slate-400">รายการสั่งซื้อ: {activeOrder.items}</p>
+                        <p className="text-slate-400">ชื่อลูกค้า: คุณ {activeOrder.customer_name}</p>
+                      </div>
+                      <div className="flex items-center gap-3 w-full md:w-auto pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 justify-between md:justify-end shrink-0">
+                        <div className="text-left md:text-right">
+                          <span className="text-[9px] text-slate-400 block font-bold">ค่าตอบแทน</span>
+                          <span className="text-base font-black text-blue-600">฿15.00</span>
+                        </div>
+                        <button
+                          onClick={() => handleRiderCompleteJob(activeOrder.id, activeOrder.merchant_name)}
+                          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-md shadow-emerald-100"
+                        >
+                          ✓ ส่งงานสำเร็จเรียบร้อย
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Rider Available Jobs Feed */}
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
                 <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                   <h3 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
-                    <span>📦</span> งานที่พร้อมรับบริการใน ม.อ.
-                    {jobs.length > 0 && (
+                    <span>📦</span> ค้นหางานว่างใน ม.อ. (Real-time Order Feed)
+                    {riderJobs.length > 0 && (
                       <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">
-                        {jobs.length} งานใหม่
+                        {riderJobs.length} งานใหม่
                       </span>
                     )}
                   </h3>
-                  <span className="text-[10px] font-semibold text-slate-400">อัปเดตอัตโนมัติ</span>
+                  <span className="text-[10px] font-semibold text-slate-400">กำลังสแกนสด</span>
                 </div>
 
-                {jobs.length === 0 ? (
+                {riderJobs.length === 0 ? (
                   <div className="py-12 text-center flex flex-col items-center justify-center space-y-2">
                     <span className="text-4xl">😴</span>
                     <p className="text-sm font-bold text-slate-600">ไม่มีงานว่างอยู่ในขณะนี้</p>
-                    <p className="text-xs text-slate-400">เรากำลังสแกนหาคำสั่งซื้อใหม่ๆ จากชาว ม.อ.</p>
+                    <p className="text-xs text-slate-400">กรุณารอสักครู่ เมื่อร้านค้าทำการเรียกไรเดอร์ รายงานจะเข้าตรงนี้ทันที</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {jobs.map((job) => (
+                    {riderJobs.map((job) => (
                       <div 
                         key={job.id} 
                         className="p-5 border border-slate-100 bg-slate-50/50 hover:bg-slate-50 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition duration-300"
                       >
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 text-xs">
                           <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                              job.type === 'food' 
-                                ? 'bg-blue-50 text-blue-600 border border-blue-100' 
-                                : job.type === 'ride' 
-                                ? 'bg-amber-50 text-amber-600 border border-amber-100'
-                                : 'bg-purple-50 text-purple-600 border border-purple-100'
-                            }`}>
-                              {job.type === 'food' ? 'ส่งอาหาร' : job.type === 'ride' ? 'เรียกรถ' : 'ส่งของด่วน'}
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-100">
+                              สั่งซื้อสินค้า / อาหาร
                             </span>
-                            <span className="text-[10px] text-slate-400 font-semibold">{job.distance} ({job.time})</span>
+                            <span className="text-[9px] text-slate-400 font-semibold">ยอดซื้อรวม: ฿{job.total_price}</span>
                           </div>
-                          <h4 className="text-sm font-bold text-slate-800">{job.title}</h4>
+                          <h4 className="text-sm font-bold text-slate-800">ร้านค้า: {job.merchant_name}</h4>
+                          <p className="text-slate-500">ปลายทางจัดส่ง: {job.dest}</p>
+                          <p className="text-slate-400">รายการของ: {job.items}</p>
                         </div>
-                        <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-4 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100">
+                        <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-4 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 shrink-0">
                           <div className="text-left md:text-right">
-                            <span className="text-[9px] text-slate-400 font-semibold block">คุณจะได้รับ</span>
-                            <span className="text-lg font-black text-blue-600">฿{job.price}</span>
+                            <span className="text-[9px] text-slate-400 font-bold block">คุณจะได้ค่าส่ง</span>
+                            <span className="text-lg font-black text-blue-600">฿15</span>
                           </div>
                           <button
-                            onClick={() => handleAcceptJob(job.id, job.price, job.title)}
-                            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition duration-300 cursor-pointer"
+                            onClick={() => handleRiderAcceptJob(job.id, job.merchant_name)}
+                            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow shadow-blue-100"
                           >
                             กดรับงานนี้
                           </button>
@@ -599,19 +906,20 @@ export default function Home() {
                 )}
               </div>
 
+              {/* Rider Completed history */}
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
-                <h3 className="text-base font-extrabold text-slate-800 border-b border-slate-100 pb-3">ประวัติการทำงานวันนี้ของคุณ</h3>
+                <h3 className="text-base font-extrabold text-slate-800 border-b border-slate-100 pb-3">ประวัติการวิ่งงานวันนี้ของคุณ</h3>
                 <div className="divide-y divide-slate-100">
-                  {riderHistory.map((historyItem) => (
+                  {riderHistory.filter(o => o.status === 'completed').map((historyItem) => (
                     <div key={historyItem.id} className="py-3 flex justify-between items-center text-xs">
                       <div className="flex items-center gap-2.5">
                         <span className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">✓</span>
                         <div>
-                          <p className="font-bold text-slate-700">{historyItem.title}</p>
-                          <p className="text-[10px] text-slate-400 mt-0.5">วันนี้ • {historyItem.time}</p>
+                          <p className="font-bold text-slate-700">ส่งสำเร็จ: {historyItem.merchant_name}</p>
+                          <p className="text-[9px] text-slate-400 mt-0.5">ปลายทาง: {historyItem.dest} • {historyItem.items}</p>
                         </div>
                       </div>
-                      <span className="font-extrabold text-blue-600">+฿{historyItem.income}</span>
+                      <span className="font-extrabold text-blue-600">+฿15</span>
                     </div>
                   ))}
                 </div>
@@ -640,9 +948,9 @@ export default function Home() {
                 </div>
 
                 <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-left">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">รายได้การขายสะสม</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">รายได้การขายสะสม (ถอนออกได้)</span>
                   <div className="flex justify-between items-baseline mt-1">
-                    <span className="text-2xl font-black text-indigo-600">฿{wallet.toLocaleString()}</span>
+                    <span className="text-2xl font-black text-indigo-600">฿{merchantRevenue.toLocaleString()}</span>
                     <button
                       onClick={handleWithdraw}
                       className="text-xs font-bold text-indigo-600 hover:underline cursor-pointer"
@@ -732,66 +1040,77 @@ export default function Home() {
                 )}
               </div>
 
-              {/* Incoming Orders Simulator */}
+              {/* Incoming Orders simulator */}
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
                 <h3 className="text-base font-extrabold text-slate-800 border-b border-slate-100 pb-3">
-                  🔔 ออเดอร์ลูกค้าส่งเข้ามา (จำลองสถานะจริง)
+                  🔔 รายการสั่งซื้อสินค้า/อาหารที่เข้าหน้าร้าน (Real-time Order Desk)
                 </h3>
 
                 <div className="space-y-3">
-                  {merchantOrders.map((ord) => (
-                    <div 
-                      key={ord.id} 
-                      className={`p-5 border rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition duration-300 ${
-                        ord.status === 'completed' 
-                          ? 'border-slate-100 bg-slate-50/20 opacity-70' 
-                          : 'border-indigo-100 bg-indigo-50/10'
-                      }`}
-                    >
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                            #00{ord.id}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-semibold">ปลายทาง: {ord.dest}</span>
+                  {merchantOrders.length === 0 ? (
+                    <p className="text-xs text-slate-400 py-8 text-center">ยังไม่มีลูกค้ายื่นคำสั่งซื้อเข้ามาในขณะนี้</p>
+                  ) : (
+                    merchantOrders.map((ord) => (
+                      <div 
+                        key={ord.id} 
+                        className={`p-5 border rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition duration-300 ${
+                          ord.status === 'completed' 
+                            ? 'border-slate-100 bg-slate-50/20 opacity-70' 
+                            : 'border-indigo-100 bg-indigo-50/10'
+                        }`}
+                      >
+                        <div className="space-y-1.5 text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                              #00{ord.id.substr(-4)}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-semibold">ปลายทางจัดส่ง: {ord.dest}</span>
+                          </div>
+                          <h4 className="text-sm font-bold text-slate-800">{ord.items}</h4>
+                          <p className="text-xs text-slate-500">
+                            ยอดรวมร้านค้า: <b>฿{ord.total_price - 15}</b> (+ ค่าส่งไรเดอร์ ฿15) • ชื่อลูกค้า: <b>คุณ {ord.customer_name}</b>
+                          </p>
                         </div>
-                        <h4 className="text-xs font-bold text-slate-800">{ord.items}</h4>
-                        <p className="text-xs font-black text-indigo-600">ราคาสินค้า: ฿{ord.price}</p>
-                      </div>
 
-                      {/* Interactive order steps */}
-                      <div className="shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 w-full md:w-auto text-right">
-                        {ord.status === 'pending' && (
-                          <button
-                            onClick={() => handleUpdateOrderStatus(ord.id, 'preparing', ord.price, ord.items)}
-                            className="w-full md:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition duration-300 cursor-pointer"
-                          >
-                            รับออเดอร์นี้
-                          </button>
-                        )}
-                        {ord.status === 'preparing' && (
-                          <button
-                            onClick={() => handleUpdateOrderStatus(ord.id, 'calling_rider', ord.price, ord.items)}
-                            className="w-full md:w-auto px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold rounded-xl transition duration-300 cursor-pointer"
-                          >
-                            เตรียมเสร็จสิ้น (เรียกไรเดอร์)
-                          </button>
-                        )}
-                        {ord.status === 'calling_rider' && (
-                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-xl animate-pulse">
-                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
-                            ไรเดอร์กำลังมารับของ...
-                          </span>
-                        )}
-                        {ord.status === 'completed' && (
-                          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-100 inline-block">
-                            จัดส่งสำเร็จเรียบร้อย
-                          </span>
-                        )}
-                      </div>
+                        {/* Interactive order steps */}
+                        <div className="shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 w-full md:w-auto text-right">
+                          {ord.status === 'pending' && (
+                            <button
+                              onClick={() => handleMerchantUpdateStatus(ord.id, 'preparing', ord.items)}
+                              className="w-full md:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition duration-300 cursor-pointer shadow shadow-indigo-100"
+                            >
+                              รับออเดอร์นี้
+                            </button>
+                          )}
+                          {ord.status === 'preparing' && (
+                            <button
+                              onClick={() => handleMerchantUpdateStatus(ord.id, 'calling_rider', ord.items)}
+                              className="w-full md:w-auto px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold rounded-xl transition duration-300 cursor-pointer shadow shadow-indigo-100"
+                            >
+                              จัดเตรียมเสร็จสิ้น (เรียกไรเดอร์)
+                            </button>
+                          )}
+                          {ord.status === 'calling_rider' && (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-xl animate-pulse">
+                              <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-ping"></span>
+                              ไรเดอร์กำลังรับงานและเดินทางมารับของ...
+                            </span>
+                          )}
+                          {ord.status === 'delivering' && (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50 px-3 py-2 rounded-xl">
+                              🏍️ ไรเดอร์กำลังเดินทางนำส่ง ({ord.rider_name || 'พาร์ทเนอร์'})
+                            </span>
+                          )}
+                          {ord.status === 'completed' && (
+                            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-100 inline-block">
+                              จัดส่งสำเร็จ ได้รับเงินแล้ว
+                            </span>
+                          )}
+                        </div>
 
-                    </div>
-                  ))}
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -803,7 +1122,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="bg-white border-t border-slate-100 mt-16 py-8 text-center text-slate-400 text-xs">
-        <p>© 2026 PSU Grab. พัฒนาขึ้นโดยใช้เทคโนโลยีความพรีเมียมเฉพาะตัวและแอนิเมชันสำหรับชาว ม.อ.</p>
+        <p>© 2026 PSU Grab. พัฒนาขึ้นด้วยระบบดาต้าเบสเรียลไทม์ผ่าน Supabase สำหรับชาว ม.อ.</p>
       </footer>
     </div>
   );
