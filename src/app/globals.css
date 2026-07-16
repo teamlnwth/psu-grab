@@ -8,10 +8,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-primary: #00B14F;          /* Grab Green */
-  --color-primary-hover: #009241;    /* Grab Dark Green hover */
-  --color-primary-light: #E6F7EE;    /* Grab Soft Green bg */
-  --color-primary-dark: #007D37;     /* Grab Deep Green border/text */
+  --color-primary: #1A56DB;          /* Premium Blue */
+  --color-primary-hover: #1E40AF;    /* Deep Blue hover */
+  --color-primary-light: #EFF6FF;    /* Soft Blue bg */
+  --color-primary-dark: #1D4ED8;     /* Rich Deep Blue text/border */
   --font-sans: var(--font-prompt), var(--font-inter), system-ui, sans-serif;
   --font-mono: var(--font-inter), monospace;
 }
