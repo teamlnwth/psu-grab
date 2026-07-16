@@ -154,7 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         return { 
           success: false, 
-          error: `เกิดข้อผิดพลาดในการตรวจสอบฐานข้อมูล: ${error.message} (ตรวจสอบว่าได้รันสคริปต์ใน SQL Editor แล้วยัง)` 
+          error: `เช็คข้อมูลไม่ได้: ${error.message} (เช็คว่ารัน SQL สร้างตารางแล้วรึเปล่า)` 
         };
       }
 
@@ -174,10 +174,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(safeUser);
         return { success: true };
       } else {
-        return { success: false, error: 'อีเมล/รหัสนักศึกษา หรือรหัสผ่านไม่ถูกต้อง' };
+        return { success: false, error: 'อีเมล/รหัสนักศึกษา หรือรหัสผ่านไม่ถูก' };
       }
     } catch (e) {
-      return { success: false, error: 'เกิดข้อผิดพลาดในการล็อกอิน' };
+      return { success: false, error: 'ล็อกอินไม่ได้ ลองใหม่' };
     }
   };
 
@@ -202,9 +202,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         if (error.code === '23505') {
-          return { success: false, error: 'อีเมลนี้ถูกใช้งานแล้วในระบบ' };
+          return { success: false, error: 'อีเมลนี้มีคนใช้แล้ว' };
         }
-        return { success: false, error: `สมัครสมาชิกล้มเหลว: ${error.message} (ตรวจสอบว่าสร้างตาราง profiles หรือยัง)` };
+        return { success: false, error: `สมัครไม่ได้: ${error.message} (เช็คว่าสร้างตาราง profiles แล้วรึเปล่า)` };
       }
 
       // If registering as a merchant, insert initial products for that merchant
@@ -226,7 +226,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return { success: true };
     } catch (e) {
-      return { success: false, error: 'เกิดข้อผิดพลาดในการบันทึกข้อมูลสมัครสมาชิก' };
+      return { success: false, error: 'สมัครไม่ได้ ลองใหม่อีกที' };
     }
   };
 

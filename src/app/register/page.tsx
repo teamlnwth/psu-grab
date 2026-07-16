@@ -32,22 +32,22 @@ export default function RegisterPage() {
 
     // Validation
     if (!name || !email || !phone || !password || !confirmPassword) {
-      setError('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน');
+      setError('กรอกข้อมูลให้ครบก่อนนะ');
       return;
     }
 
     if (role === 'merchant' && !shopName) {
-      setError('กรุณาระบุชื่อร้านค้าของคุณ');
+      setError('ใส่ชื่อร้านด้วยนะ');
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน');
+      setError('รหัสผ่านไม่ตรงกัน ลองเช็คอีกที');
       return;
     }
 
     if (password.length < 6) {
-      setError('รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร');
+      setError('รหัสผ่านต้องยาวอย่างน้อย 6 ตัวนะ');
       return;
     }
 
@@ -75,7 +75,7 @@ export default function RegisterPage() {
         router.push('/login');
       }, 1500);
     } else {
-      setError(result.error || 'เกิดข้อผิดพลาดในการสมัครสมาชิก');
+      setError(result.error || 'สมัครไม่ได้ ลองใหม่อีกที');
     }
   };
 
@@ -86,8 +86,8 @@ export default function RegisterPage() {
         {/* Warning banner */}
         {!isSupabaseConfigured && (
           <div className="mx-8 mt-8 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-2xl text-[11px] text-amber-800 space-y-1">
-            <p className="font-bold">⚠️ ตรวจพบว่ายังไม่ได้โหลดตัวแปรสภาพแวดล้อม Supabase</p>
-            <p>กรุณากด <b>Ctrl + C</b> เพื่อหยุดการทำงานของเซิร์ฟเวอร์ใน Terminal แล้วรันคำสั่ง <b>npm run dev</b> ใหม่ เพื่อโหลดค่าจากไฟล์ <b>.env.local</b> ครับ</p>
+            <p className="font-bold">⚠️ ยังไม่ได้ตั้งค่า Supabase</p>
+            <p>กด <b>Ctrl + C</b> ใน Terminal แล้วรัน <b>npm run dev</b> ใหม่ เพื่อโหลดค่าจาก <b>.env.local</b></p>
           </div>
         )}
         
@@ -98,7 +98,7 @@ export default function RegisterPage() {
               PSU Grab <span className="text-2xl">🛵</span>
             </span>
           </Link>
-          <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-5">สร้างบัญชีผู้ใช้ใหม่ในระบบ</p>
+          <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-5">สมัครสมาชิกใหม่</p>
           
           {/* Triple Green Role Selection */}
           <div className="flex bg-slate-100 p-1.5 rounded-2xl relative z-10 border border-slate-200/30 gap-1">
@@ -152,8 +152,8 @@ export default function RegisterPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-xl font-bold text-slate-800 mb-2">ลงทะเบียนเรียบร้อยแล้ว!</h2>
-            <p className="text-slate-400 text-xs font-medium">ระบบกำลังนำคุณไปยังหน้าเข้าสู่ระบบ...</p>
+            <h2 className="text-xl font-bold text-slate-800 mb-2">สมัครเรียบร้อยแล้ว!</h2>
+            <p className="text-slate-400 text-xs font-medium">กำลังไปหน้าล็อกอิน...</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-8 pt-4 space-y-4">
@@ -169,7 +169,7 @@ export default function RegisterPage() {
             {/* Merchant Shop Details Form Section */}
             {role === 'merchant' && (
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-4 animate-slide-up">
-                <h3 className="text-xs font-bold text-emerald-800 uppercase tracking-wider border-b border-slate-200/50 pb-2 text-left">ข้อมูลร้านค้าพาร์ทเนอร์</h3>
+                <h3 className="text-xs font-bold text-emerald-800 uppercase tracking-wider border-b border-slate-200/50 pb-2 text-left">ข้อมูลร้านค้า</h3>
                 
                 {/* Shop Name */}
                 <div className="space-y-1">

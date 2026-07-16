@@ -114,7 +114,7 @@ export default function Home() {
       }
       return [...prev, { id: product.id, name: product.name, price: product.price, quantity: 1 }];
     });
-    setMessage(`เพิ่ม "${product.name}" ลงในตะกร้าแล้ว`);
+    setMessage(`เพิ่ม "${product.name}" ใส่ตะกร้าแล้ว`);
     setTimeout(() => setMessage(null), 2000);
   };
 
@@ -125,7 +125,7 @@ export default function Home() {
   const handlePlaceOrder = async () => {
     if (!user || !selectedMerchant || cart.length === 0) return;
     if (!deliveryDest.trim()) {
-      alert('กรุณากรอกระบุสถานที่จัดส่งปลายทาง');
+      alert('ใส่ที่อยู่จัดส่งด้วยนะ');
       return;
     }
 
@@ -157,11 +157,11 @@ export default function Home() {
       setSelectedMerchant(null);
       setActivePromo(null);
       setPromoCodeInput('');
-      setMessage(`สั่งสินค้าเรียบร้อย! ส่งคำสั่งซื้อไปยังร้านค้าแล้ว 🍔`);
+      setMessage(`สั่งเรียบร้อย! ออเดอร์ส่งไปร้านแล้ว 🍔`);
       fetchCustomerOrders();
       setTimeout(() => setMessage(null), 3000);
     } catch (err: any) {
-      alert(`สั่งซื้อล้มเหลว: ${err.message}`);
+      alert(`สั่งไม่ได้: ${err.message}`);
     }
   };
 
@@ -208,7 +208,7 @@ export default function Home() {
     if (!user || !newProductName || !newProductPrice) return;
     const price = parseFloat(newProductPrice);
     if (isNaN(price) || price <= 0) {
-      alert('กรุณากรอกราคาที่ถูกต้อง');
+      alert('ใส่ราคาให้ถูกต้องด้วยนะ');
       return;
     }
 
@@ -228,11 +228,11 @@ export default function Home() {
 
       setNewProductName('');
       setNewProductPrice('');
-      setMessage(`เพิ่มรายการ "${newProductName}" เข้าร้านค้าสำเร็จ!`);
+      setMessage(`เพิ่ม "${newProductName}" เข้าร้านแล้ว!`);
       fetchMerchantProducts();
       setTimeout(() => setMessage(null), 2000);
     } catch (err: any) {
-      alert(`เพิ่มสินค้าล้มเหลว: ${err.message}`);
+      alert(`เพิ่มสินค้าไม่ได้: ${err.message}`);
     }
   };
 
@@ -244,11 +244,11 @@ export default function Home() {
         .eq('id', id);
       if (error) throw error;
 
-      setMessage(`ลบรายการ "${name}" เรียบร้อย`);
+      setMessage(`ลบ "${name}" แล้ว`);
       fetchMerchantProducts();
       setTimeout(() => setMessage(null), 2000);
     } catch (err: any) {
-      alert(`ลบสินค้าล้มเหลว: ${err.message}`);
+      alert(`ลบไม่ได้: ${err.message}`);
     }
   };
 
@@ -260,11 +260,11 @@ export default function Home() {
         .eq('id', orderId);
       if (error) throw error;
 
-      setMessage(nextStatus === 'preparing' ? `รับออเดอร์ "${items}" แล้ว` : `จัดส่งเสร็จสิ้น! เรียกไรเดอร์เข้ามารับงาน 🛵`);
+      setMessage(nextStatus === 'preparing' ? `รับออเดอร์ "${items}" แล้ว` : `เตรียมของเสร็จ! เรียกไรเดอร์มารับ 🛵`);
       fetchMerchantOrders();
       setTimeout(() => setMessage(null), 3000);
     } catch (err: any) {
-      alert(`อัปเดตสถานะล้มเหลว: ${err.message}`);
+      alert(`อัปเดตไม่ได้: ${err.message}`);
     }
   };
 
@@ -319,12 +319,12 @@ export default function Home() {
         .eq('id', orderId);
       if (error) throw error;
 
-      setMessage(`รับงานสำเร็จ! กำลังเดินทางไปรับสินค้าที่ร้านเพื่อจัดส่ง 🛵`);
+      setMessage(`รับงานแล้ว! กำลังไปรับของที่ร้าน 🛵`);
       fetchRiderJobs();
       fetchRiderHistory();
       setTimeout(() => setMessage(null), 3000);
     } catch (err: any) {
-      alert(`รับงานล้มเหลว: ${err.message}`);
+      alert(`รับงานไม่ได้: ${err.message}`);
     }
   };
 
@@ -336,12 +336,12 @@ export default function Home() {
         .eq('id', orderId);
       if (error) throw error;
 
-      setMessage(`จัดส่งงาน "${title}" สำเร็จแล้ว! ได้รับค่าส่ง ฿15 💰`);
+      setMessage(`ส่งเสร็จ! "${title}" — ได้ค่าส่ง ฿15 💰`);
       fetchRiderJobs();
       fetchRiderHistory();
       setTimeout(() => setMessage(null), 3000);
     } catch (err: any) {
-      alert(`อัปเดตงานล้มเหลว: ${err.message}`);
+      alert(`อัปเดตไม่ได้: ${err.message}`);
     }
   };
 
@@ -376,20 +376,20 @@ export default function Home() {
 
       if (data) {
         setActivePromo(data);
-        setMessage(`ใช้โค้ดส่วนลด "${data.code}" สำเร็จ! ลดราคา ฿${data.discount_amount}`);
+        setMessage(`ใช้โค้ด "${data.code}" แล้ว! ลด ฿${data.discount_amount}`);
         setTimeout(() => setMessage(null), 3000);
       } else {
-        setPromoError('ไม่พบโค้ดส่วนลดนี้ หรือโค้ดหมดอายุแล้ว');
+        setPromoError('โค้ดนี้ไม่ถูกต้อง หรือหมดอายุแล้ว');
       }
     } catch (err: any) {
-      setPromoError('เกิดข้อผิดพลาดในการตรวจสอบโค้ด');
+      setPromoError('เช็คโค้ดไม่ได้ ลองใหม่อีกที');
     }
   };
 
   const handleAdminAddMerchant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMerchantName || !newMerchantEmail || !newMerchantPhone || !newMerchantShopName || !newMerchantPassword) {
-      alert('กรุณากรอกข้อมูลร้านค้าพาร์ทเนอร์ให้ครบถ้วน');
+      alert('กรอกข้อมูลร้านค้าให้ครบก่อนนะ');
       return;
     }
 
@@ -411,7 +411,7 @@ export default function Home() {
 
       if (error) throw error;
 
-      setMessage(`ลงทะเบียนร้านค้า "${newMerchantShopName}" สำเร็จ!`);
+      setMessage(`เพิ่มร้าน "${newMerchantShopName}" แล้ว!`);
       setNewMerchantName('');
       setNewMerchantEmail('');
       setNewMerchantPhone('');
@@ -420,19 +420,19 @@ export default function Home() {
       fetchMerchants();
       setTimeout(() => setMessage(null), 3000);
     } catch (err: any) {
-      alert(`เพิ่มร้านค้าล้มเหลว: ${err.message}`);
+      alert(`เพิ่มร้านไม่ได้: ${err.message}`);
     }
   };
 
   const handleAdminAddPromo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPromoCode || !newPromoDiscount) {
-      alert('กรุณากรอกรหัสโค้ดและจำนวนส่วนลด');
+      alert('ใส่โค้ดกับจำนวนส่วนลดด้วย');
       return;
     }
     const discount = parseFloat(newPromoDiscount);
     if (isNaN(discount) || discount <= 0) {
-      alert('กรุณาระบุมูลค่าส่วนลดที่ถูกต้อง');
+      alert('ใส่ส่วนลดให้ถูกต้องด้วยนะ');
       return;
     }
 
@@ -447,19 +447,19 @@ export default function Home() {
 
       if (error) throw error;
 
-      setMessage(`สร้างโค้ดโปรโมชัน "${newPromoCode.toUpperCase()}" สำเร็จ!`);
+      setMessage(`สร้างโค้ด "${newPromoCode.toUpperCase()}" แล้ว!`);
       setNewPromoCode('');
       setNewPromoDiscount('');
       setNewPromoDesc('');
       fetchPromoCodes();
       setTimeout(() => setMessage(null), 3000);
     } catch (err: any) {
-      alert(`สร้างโค้ดล้มเหลว: ${err.message}`);
+      alert(`สร้างโค้ดไม่ได้: ${err.message}`);
     }
   };
 
   const handleAdminDeletePromo = async (code: string) => {
-    if (!confirm(`คุณต้องการลบรหัสคูปอง "${code}" ใช่หรือไม่?`)) return;
+    if (!confirm(`ลบโค้ด "${code}" เลยนะ?`)) return;
     try {
       const { error } = await supabase
         .from('promo_codes')
@@ -467,11 +467,11 @@ export default function Home() {
         .eq('code', code);
       if (error) throw error;
 
-      setMessage(`ลบโค้ดโปรโมชัน "${code}" สำเร็จแล้ว`);
+      setMessage(`ลบโค้ด "${code}" แล้ว`);
       fetchPromoCodes();
       setTimeout(() => setMessage(null), 3000);
     } catch (err: any) {
-      alert(`ลบโค้ดล้มเหลว: ${err.message}`);
+      alert(`ลบไม่ได้: ${err.message}`);
     }
   };
 
@@ -485,21 +485,21 @@ export default function Home() {
 
       if (error) throw error;
 
-      setMessage(`อัปเดตสถานะร้านค้าพาร์ทเนอร์สำเร็จ!`);
+      setMessage(`อัปเดตสถานะร้านแล้ว!`);
       fetchMerchants();
       setTimeout(() => setMessage(null), 3000);
     } catch (err: any) {
-      alert(`อัปเดตสถานะร้านค้าล้มเหลว: ${err.message}`);
+      alert(`อัปเดตไม่ได้: ${err.message}`);
     }
   };
 
   const handleWithdraw = () => {
     const amount = user?.role === 'rider' ? riderWallet : merchantRevenue;
     if (amount <= 0) {
-      alert('ยอดเงินสะสมของคุณไม่เพียงพอสำหรับการถอน');
+      alert('ยอดเงินไม่พอถอน');
       return;
     }
-    alert(`ถอนเงินสำเร็จ! โอนยอดเงิน ฿${amount} เข้าบัญชีธนาคารแล้ว`);
+    alert(`ถอนเงิน ฿${amount} เข้าบัญชีแล้ว!`);
     // Local simulation reset for withdraw
     if (user?.role === 'rider') setRiderWallet(0);
     else setMerchantRevenue(0);
@@ -663,13 +663,13 @@ export default function Home() {
       {/* Database Setup Warning */}
       {!isSupabaseConfigured ? (
         <div className="bg-amber-50 border-y border-amber-200 py-4.5 text-center text-xs text-amber-800 font-bold flex flex-col items-center justify-center gap-1.5 animate-fade-in">
-          <span className="text-sm">⚠️ ตรวจพบว่าแอปยังไม่ได้โหลดตัวแปรสภาพแวดล้อม Supabase จาก .env.local</span>
-          <span className="font-normal text-slate-500">กรุณากด <b>Ctrl + C</b> ใน Terminal เพื่อหยุดเซิร์ฟเวอร์ และรันคำสั่ง <b>npm run dev</b> ใหม่อีกครั้งเพื่อให้ Next.js โหลดค่าครับ</span>
+          <span className="text-sm">⚠️ ยังไม่ได้ตั้งค่า Supabase ในไฟล์ .env.local</span>
+          <span className="font-normal text-slate-500">กด <b>Ctrl + C</b> ใน Terminal แล้วรัน <b>npm run dev</b> ใหม่อีกทีนะ</span>
         </div>
       ) : dbError ? (
         <div className="bg-red-50 border-y border-red-200 py-4.5 text-center text-xs text-red-700 font-bold flex flex-col items-center justify-center gap-1.5 animate-fade-in">
-          <span>⚠️ ตรวจพบล้มเหลวในการเชื่อมดาต้าเบส Supabase (Failed to fetch)</span>
-          <span className="font-normal text-slate-500">กรุณาตรวจสอบว่า: 1. ได้ปิด Ad-blocker บนเว็บเบราว์เซอร์แล้ว (Ad-blocker อาจบล็อกโดเมน *.supabase.co) หรือ 2. รันสคริปต์ใน SQL Editor หรือยัง</span>
+          <span>⚠️ เชื่อมต่อ Supabase ไม่ได้</span>
+          <span className="font-normal text-slate-500">ลองเช็คว่า: 1. ปิด Ad-blocker แล้วหรือยัง (มันอาจบล็อก *.supabase.co) 2. รัน SQL สร้างตารางแล้วรึเปล่า</span>
           <Link href="/schema.sql" className="underline hover:text-red-900 font-bold">ดูสคริปต์ SQL ของโปรเจกต์</Link>
         </div>
       ) : null}
@@ -691,21 +691,21 @@ export default function Home() {
 
               <div className="relative z-10 space-y-5 lg:max-w-xl text-center lg:text-left">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white/20 text-white border border-white/10">
-                  📍 ทำงานแบบเชื่อมโยงกันจริง (Real-time Connect)
+                  📍 เชื่อมต่อแบบเรียลไทม์
                 </span>
                 <h1 className="text-3xl md:text-5xl font-black leading-tight">
                   สั่งอาหารก็ง่าย <br className="hidden md:inline" />
                   เดินทางก็สบายกับ <span className="underline decoration-wavy decoration-yellow-400">PSU Grab</span>
                 </h1>
                 <p className="text-emerald-50 text-sm md:text-base font-medium leading-relaxed">
-                  เชื่อมโยงผู้ใช้ใน ม.อ. ครบทั้งระบบ: ลูกค้าสร้างออเดอร์ ➔ ร้านค้าจัดเตรียมและรับรายการ ➔ ไรเดอร์รับและจัดส่งถึงที่แบบเรียลไทม์ผ่าน Supabase
+                  ลูกค้าสั่ง ➔ ร้านค้ารับออเดอร์ ➔ ไรเดอร์ส่งถึงที่ ทุกอย่างอัปเดตสดผ่าน Supabase
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start pt-2">
                   <Link
                     href="/login"
                     className="px-8 py-4 bg-white hover:bg-[#F7F9FA] text-primary font-extrabold rounded-2xl text-center shadow-lg transition hover:-translate-y-0.5 duration-300"
                   >
-                    เข้าสู่ระบบทดสอบ
+                    เข้าสู่ระบบ
                   </Link>
                   <Link
                     href="/register"
@@ -720,8 +720,8 @@ export default function Home() {
               <div className="relative z-10 w-full max-w-sm bg-white text-slate-800 rounded-3xl p-6 shadow-2xl border border-slate-150 self-stretch flex flex-col justify-between">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-extrabold text-primary bg-primary-light px-2.5 py-1 rounded-lg">บริการเชื่อมโยง</span>
-                    <span className="text-[11px] font-semibold text-slate-400">เข้าสู่ระบบเพื่อทดสอบ</span>
+                    <span className="text-xs font-extrabold text-primary bg-primary-light px-2.5 py-1 rounded-lg">PSU Grab</span>
+                    <span className="text-[11px] font-semibold text-slate-400">ล็อกอินเพื่อใช้งาน</span>
                   </div>
                   <div className="bg-slate-50 p-3 rounded-2xl flex items-center gap-2 text-slate-400 text-xs border border-slate-200/50">
                     <span>🔍</span>
@@ -750,8 +750,8 @@ export default function Home() {
                 </div>
 
                 <div className="border-t border-slate-100 pt-4 flex justify-between items-center">
-                  <span className="text-[11px] text-slate-400 font-semibold">รองรับระบบเรียลไทม์สด</span>
-                  <Link href="/login" className="text-xs font-bold text-primary hover:underline">คลิกล็อกอิน →</Link>
+                  <span className="text-[11px] text-slate-400 font-semibold">อัปเดตแบบเรียลไทม์</span>
+                  <Link href="/login" className="text-xs font-bold text-primary hover:underline">ล็อกอิน →</Link>
                 </div>
               </div>
             </div>
@@ -764,9 +764,9 @@ export default function Home() {
             {/* Header profile */}
             <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="space-y-1">
-                <span className="text-xs font-black text-primary bg-primary-light px-3 py-1 rounded-lg">ลูกค้าระบบเรียลไทม์</span>
-                <h2 className="text-2xl font-black text-slate-800 mt-2">สวัสดีคุณ {user.name} 👋</h2>
-                <p className="text-xs text-slate-400">ค้นหาร้านเด็ดและส่งคำสั่งซื้อของคุณเข้าสู่ศูนย์กลาง PSU Grab ได้ทันที</p>
+                <span className="text-xs font-black text-primary bg-primary-light px-3 py-1 rounded-lg">ลูกค้า</span>
+                <h2 className="text-2xl font-black text-slate-800 mt-2">สวัสดี {user.name} 👋</h2>
+                <p className="text-xs text-slate-400">เลือกร้านที่ชอบแล้วสั่งได้เลย!</p>
               </div>
               <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl">
                 <button
@@ -799,7 +799,7 @@ export default function Home() {
                         setPromoCodeInput(promo.code);
                         setActivePromo(promo);
                         setPromoError(null);
-                        setMessage(`เลือกใช้คูปอง "${promo.code}" แล้ว!`);
+                        setMessage(`ใช้คูปอง "${promo.code}" แล้ว!`);
                         setTimeout(() => setMessage(null), 2000);
                       }}
                       className="bg-white border border-slate-150 rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 flex items-center min-h-[90px] relative cursor-pointer group ticket-shadow"
@@ -857,14 +857,14 @@ export default function Home() {
                 {/* 1. Shop list or Selected Shop Products */}
                 {!selectedMerchant ? (
                   <div className="space-y-4">
-                    <h3 className="text-base font-extrabold text-slate-800">🏪 เลือกร้านค้าจำลองในวิทยาเขต (ดึงข้อมูลตรงจาก Supabase)</h3>
-                    {merchants.filter(m => m.is_partner).length === 0 ? (
+                    <h3 className="text-base font-extrabold text-slate-800">🏪 ร้านค้าพาร์ทเนอร์ในวิทยาเขต</h3>
+                    {merchants.filter(m => m.is_partner !== false).length === 0 ? (
                       <div className="bg-white rounded-3xl p-8 border border-slate-100 text-center text-xs text-slate-400">
-                        ไม่พบร้านค้าพาร์ทเนอร์ลงทะเบียนในระบบ Supabase (กรุณาลองลงทะเบียนร้านค้าใหม่ หรือรัน schema.sql)
+                        ยังไม่มีร้านค้าพาร์ทเนอร์ตอนนี้
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {merchants.filter(m => m.is_partner).map((merchant) => (
+                        {merchants.filter(m => m.is_partner !== false).map((merchant) => (
                           <div 
                             key={merchant.id} 
                             onClick={() => {
@@ -1103,12 +1103,12 @@ export default function Home() {
                 <div>
                   <h3 className="text-lg font-black text-slate-800">{user.name}</h3>
                   <p className="text-[10px] font-bold text-primary bg-primary-light px-3 py-1 rounded-full inline-block mt-1 uppercase">
-                    พาร์ทเนอร์คนขับระบบเรียลไทม์
+                    ไรเดอร์
                   </p>
                 </div>
                 
                 <div className="bg-[#F7F9FA] border border-slate-100 rounded-2xl p-5 text-left space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">กระเป๋าเงินของคุณ (รวมสะสม)</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">กระเป๋าเงิน</span>
                   <div className="flex justify-between items-baseline">
                     <span className="text-3xl font-black text-primary">฿{riderWallet.toLocaleString()}</span>
                     <button
@@ -1122,10 +1122,10 @@ export default function Home() {
               </div>
 
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
-                <h4 className="text-sm font-black text-slate-850">ประสิทธิภาพการวิ่งงานวันนี้</h4>
+                <h4 className="text-sm font-black text-slate-850">สรุปงานวันนี้</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-[#F7F9FA] p-4 rounded-2xl text-center">
-                    <p className="text-[10px] font-bold text-slate-400 mb-0.5">รับงานสำเร็จ</p>
+                    <p className="text-[10px] font-bold text-slate-400 mb-0.5">ส่งสำเร็จ</p>
                     <p className="text-lg font-black text-slate-850">
                       {riderHistory.filter(o => o.status === 'completed').length} งาน
                     </p>
@@ -1149,7 +1149,7 @@ export default function Home() {
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary-light0"></span>
                     </span>
-                    งานจัดส่งที่กำลังดำเนินการ (Active Route)
+                    กำลังส่งอยู่ตอนนี้
                   </h3>
 
                   {riderHistory.filter(o => o.status === 'delivering').map((activeOrder) => (
@@ -1169,7 +1169,7 @@ export default function Home() {
                           onClick={() => handleRiderCompleteJob(activeOrder.id, activeOrder.merchant_name)}
                           className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-md shadow-emerald-100"
                         >
-                          ✓ ส่งงานสำเร็จเรียบร้อย
+                          ✓ ส่งเสร็จแล้ว
                         </button>
                       </div>
                     </div>
@@ -1181,21 +1181,21 @@ export default function Home() {
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
                 <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                   <h3 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
-                    <span>📦</span> ค้นหางานว่างใน ม.อ. (Real-time Order Feed)
+                    <span>📦</span> งานที่รอรับ
                     {riderJobs.length > 0 && (
                       <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">
                         {riderJobs.length} งานใหม่
                       </span>
                     )}
                   </h3>
-                  <span className="text-[10px] font-semibold text-slate-400">กำลังสแกนสด</span>
+                  <span className="text-[10px] font-semibold text-slate-400">อัปเดตสด</span>
                 </div>
 
                 {riderJobs.length === 0 ? (
                   <div className="py-12 text-center flex flex-col items-center justify-center space-y-2">
                     <span className="text-4xl">😴</span>
                     <p className="text-sm font-bold text-slate-600">ไม่มีงานว่างอยู่ในขณะนี้</p>
-                    <p className="text-xs text-slate-400">กรุณารอสักครู่ เมื่อร้านค้าทำการเรียกไรเดอร์ รายงานจะเข้าตรงนี้ทันที</p>
+                    <p className="text-xs text-slate-400">พอมีออเดอร์ใหม่จะขึ้นตรงนี้เลย</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -1482,7 +1482,7 @@ export default function Home() {
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-blue-200 bg-white/10 border border-white/10 px-3 py-1 rounded-full uppercase tracking-wider">
-                    ผู้ดูแลระบบหลัก (Super Admin)
+                    แอดมิน
                   </span>
                   <h3 className="text-xl font-black mt-3">{user.name}</h3>
                   <p className="text-xs text-blue-200 mt-1">อีเมลติดต่อ: {user.email}</p>
@@ -1492,7 +1492,7 @@ export default function Home() {
               {/* Add Merchant Partner Form */}
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
                 <h4 className="text-sm font-extrabold text-slate-800 pb-2 border-b border-slate-100 flex items-center gap-1.5">
-                  🏢 <span>ลงทะเบียนร้านค้าพาร์ทเนอร์ใหม่</span>
+                  🏢 <span>เพิ่มร้านค้าใหม่</span>
                 </h4>
                 <form onSubmit={handleAdminAddMerchant} className="space-y-3.5 text-xs">
                   <div className="space-y-1">
@@ -1567,7 +1567,7 @@ export default function Home() {
                     type="submit"
                     className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl transition duration-300 shadow-md shadow-emerald-100/50 cursor-pointer"
                   >
-                    ลงทะเบียนและเปิดหน้าร้านใหม่
+                    เพิ่มร้านค้า
                   </button>
                 </form>
               </div>
@@ -1580,7 +1580,7 @@ export default function Home() {
               {/* Create Promo Code form */}
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
                 <h4 className="text-sm font-extrabold text-slate-800 pb-2 border-b border-slate-100 flex items-center gap-1.5">
-                  🏷️ <span>สร้างรหัสคูปองส่วนลดโปรโมชัน</span>
+                  🏷️ <span>สร้างคูปองส่วนลด</span>
                 </h4>
                 <form onSubmit={handleAdminAddPromo} className="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
                   <div className="space-y-1">

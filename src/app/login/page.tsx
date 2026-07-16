@@ -21,7 +21,7 @@ export default function LoginPage() {
     setError(null);
 
     if (!identifier || !password) {
-      setError('กรุณากรอกอีเมล/รหัสนักศึกษา และรหัสผ่าน');
+      setError('กรอกอีเมล/รหัสนักศึกษา และรหัสผ่านด้วยนะ');
       return;
     }
 
@@ -39,7 +39,7 @@ export default function LoginPage() {
         router.push('/');
       }, 1200);
     } else {
-      setError(result.error || 'การเข้าสู่ระบบล้มเหลว');
+      setError(result.error || 'ล็อกอินไม่ได้');
     }
   };
 
@@ -50,8 +50,8 @@ export default function LoginPage() {
         {/* Warning banner */}
         {!isSupabaseConfigured && (
           <div className="mb-6 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-2xl text-[11px] text-amber-800 space-y-1">
-            <p className="font-bold">⚠️ ตรวจพบว่ายังไม่ได้โหลดตัวแปรสภาพแวดล้อม Supabase</p>
-            <p>กรุณากด <b>Ctrl + C</b> เพื่อหยุดการทำงานของเซิร์ฟเวอร์ใน Terminal แล้วรันคำสั่ง <b>npm run dev</b> ใหม่ เพื่อโหลดค่าจากไฟล์ <b>.env.local</b> ครับ</p>
+            <p className="font-bold">⚠️ ยังไม่ได้ตั้งค่า Supabase</p>
+            <p>กด <b>Ctrl + C</b> ใน Terminal แล้วรัน <b>npm run dev</b> ใหม่ เพื่อโหลดค่าจาก <b>.env.local</b></p>
           </div>
         )}
         
@@ -62,7 +62,7 @@ export default function LoginPage() {
               PSU Grab <span className="text-2xl">🛵</span>
             </span>
           </Link>
-          <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">เข้าสู่ระบบการสั่งซื้อและการขับขี่</p>
+          <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">ล็อกอินเพื่อใช้งาน</p>
         </div>
 
         {success ? (
@@ -72,8 +72,8 @@ export default function LoginPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-xl font-bold text-slate-800 mb-2">ยินดีต้อนรับเข้าสู่ระบบ!</h2>
-            <p className="text-slate-400 text-xs font-medium">กำลังพาคุณไปยังหน้าหลัก...</p>
+            <h2 className="text-xl font-bold text-slate-800 mb-2">ล็อกอินสำเร็จ!</h2>
+            <p className="text-slate-400 text-xs font-medium">กำลังเข้าหน้าหลัก...</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -110,7 +110,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-slate-50/50 hover:bg-slate-50 text-sm transition-all duration-200"
-                placeholder="ระบุรหัสผ่านของคุณ"
+                placeholder="ใส่รหัสผ่าน"
                 required
               />
             </div>
@@ -129,7 +129,7 @@ export default function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  <span>กำลังตรวจสอบ...</span>
+                  <span>กำลังเช็ค...</span>
                 </>
               ) : (
                 <span>เข้าสู่ระบบ</span>
@@ -154,7 +154,7 @@ export default function LoginPage() {
         {/* Testing Info */}
         <div className="mt-6 p-4 bg-slate-50/80 rounded-2xl border border-slate-100 text-left text-xs">
           <h4 className="font-bold text-slate-700 mb-1.5 flex items-center gap-1">
-            <span>💡</span> บัญชีจำลองสำหรับทดสอบ:
+            <span>💡</span> บัญชีทดสอบ:
           </h4>
           <div className="text-[10px] text-slate-500 space-y-1">
             <p>• <b>แอดมิน:</b> admin@gmail.com (รหัส: password123)</p>
