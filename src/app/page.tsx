@@ -26,6 +26,7 @@ export default function Home() {
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [activePromo, setActivePromo] = useState<any | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
+  const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
 
   // Merchant states
   const [merchantProducts, setMerchantProducts] = useState<any[]>([]);
@@ -498,6 +499,7 @@ export default function Home() {
       if (user.role === 'customer') {
         fetchMerchants();
         fetchCustomerOrders();
+        fetchPromoCodes();
       } else if (user.role === 'merchant') {
         fetchMerchantProducts();
         fetchMerchantOrders();
@@ -532,7 +534,7 @@ export default function Home() {
     const promosChannel = supabase
       .channel('promos-realtime-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'promo_codes' }, (payload) => {
-        if (user && user.role === 'admin') {
+        if (user && (user.role === 'admin' || user.role === 'customer')) {
           fetchPromoCodes();
         }
       })
@@ -570,8 +572,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col antialiased font-sans">
-      {/* Sticky Header */}
-      <header className="sticky top-0 bg-white border-b border-slate-100 z-50 shadow-sm">
+      {/* Sticky Header with Glassmorphism */}
+      <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-100/50 z-50 shadow-sm transition-all duration-300">
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
             <span className="text-2xl font-black text-blue-600 tracking-tight flex items-center gap-2 hover:opacity-90 transition">
@@ -589,12 +591,16 @@ export default function Home() {
                       ? 'bg-blue-50 text-blue-600 border border-blue-100' 
                       : user.role === 'rider'
                       ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                      : user.role === 'admin'
+                      ? 'bg-purple-50 text-purple-600 border border-purple-100'
                       : 'bg-indigo-50 text-indigo-600 border border-indigo-100'
                   }`}>
                     {user.role === 'customer' 
                       ? 'ลูกค้า' 
                       : user.role === 'rider' 
                       ? 'คนขับ / ไรเดอร์' 
+                      : user.role === 'admin'
+                      ? 'ผู้ดูแลระบบหลัก'
                       : `ร้าน: ${user.shopName} (${user.merchantType === 'restaurant' ? 'อาหาร' : 'มาร์ท'})`}
                   </span>
                 </div>
@@ -755,6 +761,74 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Campus Promo Codes Carousel/Section */}
+            {adminPromoCodes.length > 0 && (
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100/80 space-y-3.5 animate-slide-up">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                  <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                    <span>🎟️</span> คูปองส่วนลดและข้อเสนอพิเศษวันนี้ (Offers & Promos)
+                  </h3>
+                  <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                    มี {adminPromoCodes.length} ข้อเสนอแนะนำ
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {adminPromoCodes.map(promo => (
+                    <div 
+                      key={promo.code}
+                      onClick={() => {
+                        setPromoCodeInput(promo.code);
+                        setActivePromo(promo);
+                        setPromoError(null);
+                        setMessage(`เลือกใช้คูปอง "${promo.code}" แล้ว!`);
+                        setTimeout(() => setMessage(null), 2000);
+                      }}
+                      className="bg-white border border-slate-150 rounded-2xl overflow-hidden shadow-sm hover:shadow hover:border-blue-200 transition-all duration-300 flex items-center min-h-[90px] relative cursor-pointer group"
+                    >
+                      {/* Left Pane: Ticket Color Block */}
+                      <div className="w-20 bg-gradient-to-br from-blue-600 to-indigo-700 flex flex-col items-center justify-center text-white shrink-0 self-stretch select-none relative">
+                        <span className="text-2xl">🎟️</span>
+                        <span className="text-[8px] font-black tracking-widest uppercase opacity-75 mt-1">PROMO</span>
+                        {/* Dashed line on the right boundary */}
+                        <div className="absolute right-0 top-0 bottom-0 border-r border-dashed border-white/30"></div>
+                      </div>
+
+                      {/* Ticket Circular Cutouts (Circle punches) */}
+                      <div className="absolute left-[74px] -top-1.5 w-3 h-3 bg-slate-50 rounded-full border-b border-slate-200 z-10"></div>
+                      <div className="absolute left-[74px] -bottom-1.5 w-3 h-3 bg-slate-50 rounded-full border-t border-slate-200 z-10"></div>
+
+                      {/* Right Pane: Coupon Details */}
+                      <div className="flex-1 p-4 pr-12 text-left space-y-1 relative">
+                        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                          <h5 className="font-black text-sm text-slate-800">ส่วนลด ฿{promo.discount_amount}</h5>
+                          <span className="text-[8px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded uppercase">
+                            {promo.code}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-semibold leading-tight">{promo.description || 'ใช้ส่วนลดสำหรับสินค้าในวิทยาเขต ม.อ.'}</p>
+                        <span className="text-[8px] text-slate-400 block pt-0.5 font-medium">⏳ คูปองแนะนำพิเศษสำหรับสิทธิ์ล็อกอินนี้</span>
+                      </div>
+
+                      {/* Apply button / Checkbox */}
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 shrink-0">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          activePromo?.code === promo.code
+                            ? 'border-blue-600 bg-blue-600 text-white'
+                            : 'border-slate-300 group-hover:border-blue-400 bg-white'
+                        }`}>
+                          {activePromo?.code === promo.code && (
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Shopping & Ordering Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               
@@ -778,21 +852,29 @@ export default function Home() {
                               setSelectedMerchant(merchant);
                               fetchSelectedMerchantProducts(merchant.id);
                             }}
-                            className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition duration-300 flex items-center justify-between cursor-pointer group"
+                            className="bg-white rounded-3xl p-6 border border-slate-100/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-between cursor-pointer group"
                           >
                             <div className="flex items-center gap-4">
-                              <span className="text-3xl">{merchant.merchant_type === 'restaurant' ? '🍔' : '🛒'}</span>
-                              <div className="space-y-0.5">
-                                <h4 className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition">
+                              <span className="w-14 h-14 rounded-2xl bg-blue-50/50 group-hover:bg-blue-50 text-3xl flex items-center justify-center transition duration-300">
+                                {merchant.merchant_type === 'restaurant' ? '🍔' : '🛒'}
+                              </span>
+                              <div className="space-y-1">
+                                <h4 className="text-sm font-black text-slate-800 group-hover:text-blue-600 transition">
                                   {merchant.shop_name || merchant.name}
                                 </h4>
-                                <p className="text-[10px] text-slate-400 font-semibold">
-                                  หมวดหมู่: {merchant.merchant_type === 'restaurant' ? 'ร้านอาหาร' : 'มินิมาร์ท'}
-                                </p>
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-400 font-semibold">
+                                  <span className={merchant.merchant_type === 'restaurant' ? 'text-indigo-600' : 'text-amber-600'}>
+                                    {merchant.merchant_type === 'restaurant' ? '🍴 ร้านอาหาร' : '🛍️ มินิมาร์ท'}
+                                  </span>
+                                  <span>•</span>
+                                  <span className="text-amber-500">⭐ 4.8</span>
+                                  <span>•</span>
+                                  <span>⏳ 15-25 นาที</span>
+                                </div>
                               </div>
                             </div>
-                            <span className="text-xs text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition duration-300 font-bold">
-                              เข้าร้านค้า →
+                            <span className="text-xs text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1.5 transition-all duration-300 font-bold shrink-0">
+                              สั่งซื้อเลย →
                             </span>
                           </div>
                         ))}
@@ -887,52 +969,35 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* Promo Code Coupon Input */}
-                    <div className="space-y-1.5 pt-2 border-t border-slate-100">
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                        กรอกโค้ดส่วนลดโปรโมชัน
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={promoCodeInput}
-                          onChange={(e) => {
-                            setPromoCodeInput(e.target.value);
-                            setPromoError(null);
-                          }}
-                          disabled={!!activePromo}
-                          className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition uppercase font-bold text-slate-800"
-                          placeholder="เช่น PSUNEW50, FREE15"
-                        />
-                        {activePromo ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActivePromo(null);
-                              setPromoCodeInput('');
-                            }}
-                            className="px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold rounded-xl transition cursor-pointer"
-                          >
-                            ยกเลิก
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={handleApplyPromo}
-                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition cursor-pointer"
-                          >
-                            ใช้งาน
-                          </button>
-                        )}
-                      </div>
-                      {promoError && (
-                        <p className="text-[10px] text-red-500 font-bold">{promoError}</p>
-                      )}
-                      {activePromo && (
-                        <p className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 mt-1">
-                          <span>✓</span> คูปองสำเร็จ ลดเพิ่ม ฿{activePromo.discount_amount} ({activePromo.description || 'ส่วนลด'})
-                        </p>
-                      )}
+                    {/* Grab-style Promo selector bar */}
+                    <div className="pt-2 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setIsPromoModalOpen(true)}
+                        className="w-full py-3 px-4 bg-slate-50 hover:bg-slate-100/80 border border-slate-100/70 rounded-2xl flex justify-between items-center text-xs text-slate-700 font-bold transition-all duration-200 cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-base text-blue-600">🏷️</span>
+                          {activePromo ? (
+                            <div className="flex items-center gap-1.5 text-left">
+                              <span className="bg-blue-600 text-white text-[9px] px-2 py-0.5 rounded font-black tracking-wide uppercase">
+                                {activePromo.code}
+                              </span>
+                              <span className="text-blue-600 font-black">ลดแล้ว ฿{activePromo.discount_amount}</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-500 font-extrabold">ใช้คูปองเพื่อรับส่วนลด (Offers & Promos)</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-slate-400 shrink-0">
+                          {activePromo ? (
+                            <span className="text-[9px] text-blue-600 font-bold bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg group-hover:bg-blue-100">เปลี่ยน</span>
+                          ) : (
+                            <span className="text-[9px] text-slate-400 font-bold bg-slate-200/50 px-2 py-0.5 rounded-lg group-hover:bg-slate-200">เลือก</span>
+                          )}
+                          <span className="text-slate-400 font-medium">❯</span>
+                        </div>
+                      </button>
                     </div>
 
                     {/* Delivery Destination Input */}
@@ -1621,6 +1686,158 @@ export default function Home() {
         )}
 
       </main>
+
+      {/* Grab-style Promo Selector Modal Drawer */}
+      {isPromoModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="max-w-md w-full bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-slate-100 animate-slide-up">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div className="space-y-0.5 text-left">
+                <h3 className="text-sm font-black text-slate-800">เลือกคูปองส่วนลด</h3>
+                <p className="text-[10px] text-slate-400 font-bold">Offers & Promos</p>
+              </div>
+              <button 
+                onClick={() => setIsPromoModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 hover:text-slate-800 flex items-center justify-center text-xs font-bold transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
+              
+              {/* Promo input row */}
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left">
+                  กรอกรหัสโปรโมชันด้วยตนเอง
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={promoCodeInput}
+                    onChange={(e) => {
+                      setPromoCodeInput(e.target.value);
+                      setPromoError(null);
+                    }}
+                    className="flex-1 px-4 py-2.5 rounded-2xl border border-slate-250 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition uppercase font-black text-slate-800"
+                    placeholder="ใส่รหัสส่วนลด เช่น FREE15"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleApplyPromo();
+                    }}
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-2xl transition cursor-pointer shadow-sm shadow-blue-100"
+                  >
+                    ใช้งาน
+                  </button>
+                </div>
+                {promoError && (
+                  <p className="text-[10px] text-red-500 font-bold text-left">{promoError}</p>
+                )}
+                {activePromo && (
+                  <p className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 mt-1 text-left">
+                    <span>✓</span> กำลังใช้คูปอง ลดเพิ่ม ฿{activePromo.discount_amount}
+                  </p>
+                )}
+              </div>
+
+              {/* Coupons List */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    คูปองส่วนลดที่ใช้ได้สำหรับคุณ
+                  </span>
+                  {activePromo && (
+                    <button 
+                      onClick={() => {
+                        setActivePromo(null);
+                        setPromoCodeInput('');
+                      }}
+                      className="text-[10px] font-bold text-red-500 hover:underline"
+                    >
+                      ล้างการเลือก
+                    </button>
+                  )}
+                </div>
+
+                {adminPromoCodes.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-slate-400 border border-dashed border-slate-100 rounded-2xl">
+                    ไม่มีคูปองแนะนำในขณะนี้
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {adminPromoCodes.map(promo => (
+                      <div 
+                        key={promo.code}
+                        onClick={() => {
+                          setPromoCodeInput(promo.code);
+                          setActivePromo(promo);
+                          setPromoError(null);
+                        }}
+                        className="bg-white border border-slate-150 rounded-2xl overflow-hidden shadow-sm hover:shadow hover:border-blue-200 transition-all duration-300 flex items-center min-h-[90px] relative cursor-pointer group"
+                      >
+                        {/* Left Pane: Ticket Color Block */}
+                        <div className="w-20 bg-gradient-to-br from-blue-600 to-indigo-700 flex flex-col items-center justify-center text-white shrink-0 self-stretch select-none relative">
+                          <span className="text-2xl">🎟️</span>
+                          <span className="text-[8px] font-black tracking-widest uppercase opacity-75 mt-1">PROMO</span>
+                          {/* Dashed separator */}
+                          <div className="absolute right-0 top-0 bottom-0 border-r border-dashed border-white/30"></div>
+                        </div>
+
+                        {/* Ticket Circular Cutouts */}
+                        <div className="absolute left-[74px] -top-1.5 w-3 h-3 bg-white rounded-full border-b border-slate-200 z-10"></div>
+                        <div className="absolute left-[74px] -bottom-1.5 w-3 h-3 bg-white rounded-full border-t border-slate-200 z-10"></div>
+
+                        {/* Right Pane: Coupon Details */}
+                        <div className="flex-1 p-4 pr-12 text-left space-y-1 relative">
+                          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                            <h5 className="font-black text-sm text-slate-800">ส่วนลด ฿{promo.discount_amount}</h5>
+                            <span className="text-[8px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded uppercase">
+                              {promo.code}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-semibold leading-tight">{promo.description || 'ใช้ส่วนลดสำหรับสินค้าในวิทยาเขต ม.อ.'}</p>
+                          <span className="text-[8px] text-slate-400 block pt-0.5 font-medium">⏳ คูปองแนะนำพิเศษสำหรับสิทธิ์ล็อกอินนี้</span>
+                        </div>
+
+                        {/* Apply Radio Checkbox */}
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 shrink-0">
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                            activePromo?.code === promo.code
+                              ? 'border-blue-600 bg-blue-600 text-white'
+                              : 'border-slate-300 group-hover:border-blue-400 bg-white'
+                          }`}>
+                            {activePromo?.code === promo.code && (
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-slate-100 bg-slate-50/50">
+              <button
+                type="button"
+                onClick={() => setIsPromoModalOpen(false)}
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-2xl transition duration-300 shadow shadow-blue-100 cursor-pointer text-center"
+              >
+                ตกลงเลือกใช้นี้
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="bg-white border-t border-slate-100 mt-16 py-8 text-center text-slate-400 text-xs">
