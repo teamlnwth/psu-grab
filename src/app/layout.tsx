@@ -15,8 +15,8 @@ const prompt = Prompt({
 });
 
 export const metadata: Metadata = {
-  title: "PSU Grab 🛵 - บริการส่งอาหารและเรียกรถสำหรับชาว ม.อ.",
-  description: "บริการสั่งอาหารและเรียกรถรับส่งสะดวกสบายสำหรับนักศึกษาและบุคลากร ม.อ.",
+  title: "PSU Grab 🛵 - บริการสั่งอาหารและเรียกรถในวิทยาเขต ม.อ.",
+  description: "บริการสั่งอาหารและเรียกรถรับส่งสำหรับนักศึกษาและบุคลากร ม.อ. รวดเร็ว ปลอดภัย ตลอด 24 ชม.",
 };
 
 export default function RootLayout({

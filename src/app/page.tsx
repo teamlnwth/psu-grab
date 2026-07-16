@@ -558,25 +558,25 @@ export default function Home() {
   // Loading skeleton screen
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
+      <main className="min-h-screen bg-[#F7F9FA] flex flex-col items-center justify-center p-6">
         <div className="flex flex-col items-center gap-4">
-          <svg className="animate-spin h-10 w-10 text-blue-600" fill="none" viewBox="0 0 24 24">
+          <svg className="animate-spin h-10 w-10 text-primary" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
-          <span className="text-sm font-semibold text-slate-500">กำลังเชื่อมต่อข้อมูล PSU Grab...</span>
+          <span className="text-sm font-semibold text-slate-500 animate-pulse">กำลังเชื่อมต่อข้อมูล PSU Grab...</span>
         </div>
       </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col antialiased font-sans">
+    <div className="min-h-screen bg-[#F7F9FA] text-slate-800 flex flex-col antialiased font-sans">
       {/* Sticky Header with Glassmorphism */}
-      <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-100/50 z-50 shadow-sm transition-all duration-300">
+      <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-150 z-50 shadow-sm transition-all duration-300">
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl font-black text-blue-600 tracking-tight flex items-center gap-2 hover:opacity-90 transition">
+            <span className="text-2xl font-black text-primary tracking-tight flex items-center gap-2 hover:scale-[1.02] transition duration-200">
               PSU Grab <span className="text-xl">🛵</span>
             </span>
           </Link>
@@ -585,10 +585,10 @@ export default function Home() {
             {user ? (
               <div className="flex items-center gap-4">
                 <div className="flex flex-col items-end">
-                  <span className="text-sm font-bold text-slate-800">{user.name}</span>
+                  <span className="text-sm font-black text-slate-850">{user.name}</span>
                   <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide ${
                     user.role === 'customer' 
-                      ? 'bg-blue-50 text-blue-600 border border-blue-100' 
+                      ? 'bg-primary-light text-primary border border-primary-light/40' 
                       : user.role === 'rider'
                       ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
                       : user.role === 'admin'
@@ -606,7 +606,7 @@ export default function Home() {
                 </div>
                 <button
                   onClick={logout}
-                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-red-600 bg-slate-100 hover:bg-red-50 rounded-xl transition duration-300 cursor-pointer"
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-xl transition duration-300 cursor-pointer"
                 >
                   ออกจากระบบ
                 </button>
@@ -615,13 +615,13 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <Link
                   href="/login"
-                  className="px-4 py-2.5 text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-xl transition duration-300"
+                  className="px-4 py-2.5 text-xs font-bold text-primary hover:bg-primary-light rounded-xl transition duration-300"
                 >
                   เข้าสู่ระบบ
                 </Link>
                 <Link
                   href="/register"
-                  className="px-4 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md shadow-blue-100 hover:shadow-lg transition duration-300"
+                  className="px-4 py-2.5 text-xs font-bold bg-primary hover:bg-primary-hover text-white rounded-xl shadow-md shadow-emerald-100/50 hover:shadow-lg transition duration-300"
                 >
                   สมัครสมาชิก
                 </Link>
@@ -633,7 +633,7 @@ export default function Home() {
 
       {/* Floating Notifications */}
       {message && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-6 py-3.5 rounded-2xl shadow-xl z-50 flex items-center gap-3 border border-blue-500 animate-fade-in text-sm font-semibold max-w-md w-[90%] justify-center">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-primary text-white px-6 py-3.5 rounded-2xl shadow-xl z-50 flex items-center gap-3 border border-blue-500 animate-fade-in text-sm font-semibold max-w-md w-[90%] justify-center">
           <svg className="w-5 h-5 shrink-0 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -662,7 +662,7 @@ export default function Home() {
         {!user && (
           <div className="space-y-10 py-4 animate-fade-in">
             {/* Grab Style Banner Card */}
-            <div className="bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-700 rounded-[32px] p-8 md:p-12 text-white shadow-xl relative overflow-hidden flex flex-col lg:flex-row justify-between items-center gap-8">
+            <div className="bg-gradient-to-br from-primary via-primary-hover to-primary-dark rounded-[32px] p-8 md:p-12 text-white shadow-xl relative overflow-hidden flex flex-col lg:flex-row justify-between items-center gap-8">
               <div className="absolute right-0 top-0 opacity-15 pointer-events-none translate-x-20 -translate-y-20">
                 <svg width="400" height="400" viewBox="0 0 100 100" fill="none"><circle cx="50" cy="50" r="40" stroke="white" strokeWidth="8" /></svg>
               </div>
@@ -678,19 +678,19 @@ export default function Home() {
                   สั่งอาหารก็ง่าย <br className="hidden md:inline" />
                   เดินทางก็สบายกับ <span className="underline decoration-wavy decoration-yellow-400">PSU Grab</span>
                 </h1>
-                <p className="text-blue-100 text-sm md:text-base font-medium leading-relaxed">
+                <p className="text-emerald-50 text-sm md:text-base font-medium leading-relaxed">
                   เชื่อมโยงผู้ใช้ใน ม.อ. ครบทั้งระบบ: ลูกค้าสร้างออเดอร์ ➔ ร้านค้าจัดเตรียมและรับรายการ ➔ ไรเดอร์รับและจัดส่งถึงที่แบบเรียลไทม์ผ่าน Supabase
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start pt-2">
                   <Link
                     href="/login"
-                    className="px-8 py-4 bg-white hover:bg-slate-50 text-blue-600 font-extrabold rounded-2xl text-center shadow-lg transition hover:-translate-y-0.5 duration-300"
+                    className="px-8 py-4 bg-white hover:bg-[#F7F9FA] text-primary font-extrabold rounded-2xl text-center shadow-lg transition hover:-translate-y-0.5 duration-300"
                   >
                     เข้าสู่ระบบทดสอบ
                   </Link>
                   <Link
                     href="/register"
-                    className="px-8 py-4 bg-blue-500/30 hover:bg-blue-500/50 text-white font-extrabold rounded-2xl text-center border border-white/20 transition hover:-translate-y-0.5 duration-300"
+                    className="px-8 py-4 bg-primary-light0/30 hover:bg-primary-light0/50 text-white font-extrabold rounded-2xl text-center border border-white/20 transition hover:-translate-y-0.5 duration-300"
                   >
                     สมัครสมาชิกร้านค้า / ไรเดอร์
                   </Link>
@@ -698,13 +698,13 @@ export default function Home() {
               </div>
 
               {/* Grab app mock view block */}
-              <div className="relative z-10 w-full max-w-sm bg-white text-slate-800 rounded-3xl p-6 shadow-2xl border border-slate-100/50 self-stretch flex flex-col justify-between">
+              <div className="relative z-10 w-full max-w-sm bg-white text-slate-800 rounded-3xl p-6 shadow-2xl border border-slate-150 self-stretch flex flex-col justify-between">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-extrabold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">บริการเชื่อมโยง</span>
+                    <span className="text-xs font-extrabold text-primary bg-primary-light px-2.5 py-1 rounded-lg">บริการเชื่อมโยง</span>
                     <span className="text-[11px] font-semibold text-slate-400">เข้าสู่ระบบเพื่อทดสอบ</span>
                   </div>
-                  <div className="bg-slate-100 p-3 rounded-2xl flex items-center gap-2 text-slate-400 text-xs border border-slate-200/50">
+                  <div className="bg-slate-50 p-3 rounded-2xl flex items-center gap-2 text-slate-400 text-xs border border-slate-200/50">
                     <span>🔍</span>
                     <span>ค้นหาร้านอาหาร หรือจุดรับส่งใน ม.อ.</span>
                   </div>
@@ -713,26 +713,26 @@ export default function Home() {
                 {/* 4-Item Quick Grid */}
                 <div className="grid grid-cols-4 gap-3 my-6">
                   <Link href="/login" className="flex flex-col items-center gap-1.5 group">
-                    <div className="w-12 h-12 bg-blue-50 group-hover:bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl transition duration-300 shadow-sm">🍔</div>
+                    <div className="w-12 h-12 bg-primary-light group-hover:bg-blue-100 text-primary rounded-2xl flex items-center justify-center text-2xl transition duration-300 shadow-sm">🍔</div>
                     <span className="text-[11px] font-bold text-slate-600">สั่งอาหาร</span>
                   </Link>
                   <Link href="/login" className="flex flex-col items-center gap-1.5 group">
-                    <div className="w-12 h-12 bg-blue-50 group-hover:bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl transition duration-300 shadow-sm">🛵</div>
+                    <div className="w-12 h-12 bg-primary-light group-hover:bg-blue-100 text-primary rounded-2xl flex items-center justify-center text-2xl transition duration-300 shadow-sm">🛵</div>
                     <span className="text-[11px] font-bold text-slate-600">เรียกรถ</span>
                   </Link>
                   <Link href="/login" className="flex flex-col items-center gap-1.5 group">
-                    <div className="w-12 h-12 bg-blue-50 group-hover:bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl transition duration-300 shadow-sm">📦</div>
+                    <div className="w-12 h-12 bg-primary-light group-hover:bg-blue-100 text-primary rounded-2xl flex items-center justify-center text-2xl transition duration-300 shadow-sm">📦</div>
                     <span className="text-[11px] font-bold text-slate-600">ส่งของ</span>
                   </Link>
                   <Link href="/login" className="flex flex-col items-center gap-1.5 group">
-                    <div className="w-12 h-12 bg-blue-50 group-hover:bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl transition duration-300 shadow-sm">🛒</div>
+                    <div className="w-12 h-12 bg-primary-light group-hover:bg-blue-100 text-primary rounded-2xl flex items-center justify-center text-2xl transition duration-300 shadow-sm">🛒</div>
                     <span className="text-[11px] font-bold text-slate-600">มาร์ท</span>
                   </Link>
                 </div>
 
                 <div className="border-t border-slate-100 pt-4 flex justify-between items-center">
                   <span className="text-[11px] text-slate-400 font-semibold">รองรับระบบเรียลไทม์สด</span>
-                  <Link href="/login" className="text-xs font-bold text-blue-600 hover:underline">คลิกล็อกอิน →</Link>
+                  <Link href="/login" className="text-xs font-bold text-primary hover:underline">คลิกล็อกอิน →</Link>
                 </div>
               </div>
             </div>
@@ -745,11 +745,11 @@ export default function Home() {
             {/* Header profile */}
             <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div className="space-y-1">
-                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">ลูกค้าระบบเรียลไทม์</span>
+                <span className="text-xs font-black text-primary bg-primary-light px-3 py-1 rounded-lg">ลูกค้าระบบเรียลไทม์</span>
                 <h2 className="text-2xl font-black text-slate-800 mt-2">สวัสดีคุณ {user.name} 👋</h2>
                 <p className="text-xs text-slate-400">ค้นหาร้านเด็ดและส่งคำสั่งซื้อของคุณเข้าสู่ศูนย์กลาง PSU Grab ได้ทันที</p>
               </div>
-              <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
+              <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl">
                 <button
                   onClick={() => setActiveCategory('all')}
                   className={`px-4 py-2 text-xs font-extrabold rounded-lg transition-all ${
@@ -768,7 +768,7 @@ export default function Home() {
                   <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
                     <span>🎟️</span> คูปองส่วนลดและข้อเสนอพิเศษวันนี้ (Offers & Promos)
                   </h3>
-                  <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-bold text-primary bg-primary-light px-2 py-0.5 rounded-full">
                     มี {adminPromoCodes.length} ข้อเสนอแนะนำ
                   </span>
                 </div>
@@ -783,7 +783,7 @@ export default function Home() {
                         setMessage(`เลือกใช้คูปอง "${promo.code}" แล้ว!`);
                         setTimeout(() => setMessage(null), 2000);
                       }}
-                      className="bg-white border border-slate-150 rounded-2xl overflow-hidden shadow-sm hover:shadow hover:border-blue-200 transition-all duration-300 flex items-center min-h-[90px] relative cursor-pointer group"
+                      className="bg-white border border-slate-150 rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 flex items-center min-h-[90px] relative cursor-pointer group ticket-shadow"
                     >
                       {/* Left Pane: Ticket Color Block */}
                       <div className="w-20 bg-gradient-to-br from-blue-600 to-indigo-700 flex flex-col items-center justify-center text-white shrink-0 self-stretch select-none relative">
@@ -794,14 +794,14 @@ export default function Home() {
                       </div>
 
                       {/* Ticket Circular Cutouts (Circle punches) */}
-                      <div className="absolute left-[74px] -top-1.5 w-3 h-3 bg-slate-50 rounded-full border-b border-slate-200 z-10"></div>
-                      <div className="absolute left-[74px] -bottom-1.5 w-3 h-3 bg-slate-50 rounded-full border-t border-slate-200 z-10"></div>
+                      <div className="absolute left-[74px] -top-1.5 w-3 h-3 bg-[#F7F9FA] rounded-full border-b border-slate-200 z-10"></div>
+                      <div className="absolute left-[74px] -bottom-1.5 w-3 h-3 bg-[#F7F9FA] rounded-full border-t border-slate-200 z-10"></div>
 
                       {/* Right Pane: Coupon Details */}
                       <div className="flex-1 p-4 pr-12 text-left space-y-1 relative">
                         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                           <h5 className="font-black text-sm text-slate-800">ส่วนลด ฿{promo.discount_amount}</h5>
-                          <span className="text-[8px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded uppercase">
+                          <span className="text-[8px] font-black text-primary bg-primary-light border border-primary-light/40 px-1.5 py-0.5 rounded uppercase">
                             {promo.code}
                           </span>
                         </div>
@@ -813,7 +813,7 @@ export default function Home() {
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 shrink-0">
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                           activePromo?.code === promo.code
-                            ? 'border-blue-600 bg-blue-600 text-white'
+                            ? 'border-blue-600 bg-primary text-white'
                             : 'border-slate-300 group-hover:border-blue-400 bg-white'
                         }`}>
                           {activePromo?.code === promo.code && (
@@ -855,11 +855,11 @@ export default function Home() {
                             className="bg-white rounded-3xl p-6 border border-slate-100/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-between cursor-pointer group"
                           >
                             <div className="flex items-center gap-4">
-                              <span className="w-14 h-14 rounded-2xl bg-blue-50/50 group-hover:bg-blue-50 text-3xl flex items-center justify-center transition duration-300">
+                              <span className="w-14 h-14 rounded-2xl bg-primary-light/50 group-hover:bg-primary-light text-3xl flex items-center justify-center transition duration-300">
                                 {merchant.merchant_type === 'restaurant' ? '🍔' : '🛒'}
                               </span>
                               <div className="space-y-1">
-                                <h4 className="text-sm font-black text-slate-800 group-hover:text-blue-600 transition">
+                                <h4 className="text-sm font-black text-slate-800 group-hover:text-primary transition">
                                   {merchant.shop_name || merchant.name}
                                 </h4>
                                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-400 font-semibold">
@@ -873,7 +873,7 @@ export default function Home() {
                                 </div>
                               </div>
                             </div>
-                            <span className="text-xs text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1.5 transition-all duration-300 font-bold shrink-0">
+                            <span className="text-xs text-slate-400 group-hover:text-primary group-hover:translate-x-1.5 transition-all duration-300 font-bold shrink-0">
                               สั่งซื้อเลย →
                             </span>
                           </div>
@@ -890,7 +890,7 @@ export default function Home() {
                       >
                         ← ย้อนกลับไปเลือกร้านค้า
                       </button>
-                      <h3 className="text-sm font-black text-blue-600 uppercase">
+                      <h3 className="text-sm font-black text-primary uppercase">
                         {selectedMerchant.shop_name || selectedMerchant.name}
                       </h3>
                     </div>
@@ -905,11 +905,11 @@ export default function Home() {
                             <div key={prod.id} className="py-3 flex justify-between items-center text-xs">
                               <div>
                                 <p className="font-bold text-slate-700">{prod.name}</p>
-                                <p className="font-bold text-blue-600 mt-0.5">฿{prod.price}</p>
+                                <p className="font-bold text-primary mt-0.5">฿{prod.price}</p>
                               </div>
                               <button
                                 onClick={() => handleAddToCart(prod)}
-                                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-extrabold rounded-lg transition cursor-pointer"
+                                className="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white text-[10px] font-extrabold rounded-lg transition cursor-pointer"
                               >
                                 + ใส่ตะกร้า
                               </button>
@@ -928,7 +928,7 @@ export default function Home() {
                 {/* Checkout Cart Container */}
                 {cart.length > 0 && (
                   <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-md space-y-4 animate-slide-up">
-                    <h3 className="text-sm font-bold text-slate-800 pb-2 border-b border-slate-100">
+                    <h3 className="text-sm font-black text-slate-850 pb-2 border-b border-slate-100">
                       🛒 ตะกร้าสินค้าของคุณ ({selectedMerchant?.shop_name || selectedMerchant?.name})
                     </h3>
                     <div className="divide-y divide-slate-100 text-xs">
@@ -961,7 +961,7 @@ export default function Home() {
                       )}
                       <div className="flex justify-between font-medium">
                         <span className="text-slate-500">ค่าจัดส่งโดยไรเดอร์</span>
-                        <span className="text-blue-600 font-bold">฿15</span>
+                        <span className="text-primary font-bold">฿15</span>
                       </div>
                       <div className="flex justify-between font-black text-sm border-t border-slate-100 pt-2 text-slate-800">
                         <span>ราคารวมทั้งหมด</span>
@@ -974,16 +974,16 @@ export default function Home() {
                       <button
                         type="button"
                         onClick={() => setIsPromoModalOpen(true)}
-                        className="w-full py-3 px-4 bg-slate-50 hover:bg-slate-100/80 border border-slate-100/70 rounded-2xl flex justify-between items-center text-xs text-slate-700 font-bold transition-all duration-200 cursor-pointer group"
+                        className="w-full py-3 px-4 bg-[#F7F9FA] hover:bg-slate-50/80 border border-slate-100/70 rounded-2xl flex justify-between items-center text-xs text-slate-700 font-bold transition-all duration-200 cursor-pointer group"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-base text-blue-600">🏷️</span>
+                          <span className="text-base text-primary">🏷️</span>
                           {activePromo ? (
                             <div className="flex items-center gap-1.5 text-left">
-                              <span className="bg-blue-600 text-white text-[9px] px-2 py-0.5 rounded font-black tracking-wide uppercase">
+                              <span className="bg-primary text-white text-[9px] px-2 py-0.5 rounded font-black tracking-wide uppercase">
                                 {activePromo.code}
                               </span>
-                              <span className="text-blue-600 font-black">ลดแล้ว ฿{activePromo.discount_amount}</span>
+                              <span className="text-primary font-black">ลดแล้ว ฿{activePromo.discount_amount}</span>
                             </div>
                           ) : (
                             <span className="text-slate-500 font-extrabold">ใช้คูปองเพื่อรับส่วนลด (Offers & Promos)</span>
@@ -991,7 +991,7 @@ export default function Home() {
                         </div>
                         <div className="flex items-center gap-1 text-slate-400 shrink-0">
                           {activePromo ? (
-                            <span className="text-[9px] text-blue-600 font-bold bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg group-hover:bg-blue-100">เปลี่ยน</span>
+                            <span className="text-[9px] text-primary font-bold bg-primary-light border border-primary-light/40 px-2 py-0.5 rounded-lg group-hover:bg-blue-100">เปลี่ยน</span>
                           ) : (
                             <span className="text-[9px] text-slate-400 font-bold bg-slate-200/50 px-2 py-0.5 rounded-lg group-hover:bg-slate-200">เลือก</span>
                           )}
@@ -1007,7 +1007,7 @@ export default function Home() {
                         type="text"
                         value={deliveryDest}
                         onChange={(e) => setDeliveryDest(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-[#F7F9FA] text-xs transition"
                         placeholder="เช่น หอ 11 ห้อง 420 หรือ ตึกวิศวะชั้น 2"
                         required
                       />
@@ -1015,7 +1015,7 @@ export default function Home() {
 
                     <button
                       onClick={handlePlaceOrder}
-                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition duration-300 shadow shadow-blue-100 cursor-pointer"
+                      className="w-full py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl transition duration-300 shadow shadow-emerald-100/50 cursor-pointer"
                     >
                       ยืนยันการสั่งซื้ออาหาร/ของชำ
                     </button>
@@ -1024,7 +1024,7 @@ export default function Home() {
 
                 {/* Customer Active Orders Tracker */}
                 <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
-                  <h3 className="text-sm font-bold text-slate-800 pb-2 border-b border-slate-100">
+                  <h3 className="text-sm font-black text-slate-850 pb-2 border-b border-slate-100">
                     🔔 ออเดอร์และสถานะเดินทางสด (Real-time Tracker)
                   </h3>
                   {customerOrders.length === 0 ? (
@@ -1043,7 +1043,7 @@ export default function Home() {
                                 : order.status === 'calling_rider'
                                 ? 'bg-purple-50 text-purple-600 border border-purple-100'
                                 : order.status === 'delivering'
-                                ? 'bg-blue-50 text-blue-600 border border-blue-100 animate-pulse'
+                                ? 'bg-primary-light text-primary border border-primary-light/40 animate-pulse'
                                 : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
                             }`}>
                               {order.status === 'pending' && 'รอรับออเดอร์'}
@@ -1058,7 +1058,7 @@ export default function Home() {
                             ยอดชำระ: <b>฿{order.total_price}</b> • ปลายทาง: <b>{order.dest}</b>
                           </p>
                           {order.rider_name && (
-                            <p className="text-[9px] text-blue-600 font-bold bg-blue-50 px-2 py-1 rounded">
+                            <p className="text-[9px] text-primary font-bold bg-primary-light px-2 py-1 rounded">
                               🏍️ ไรเดอร์ผู้จัดส่ง: คุณ {order.rider_name}
                             </p>
                           )}
@@ -1080,21 +1080,21 @@ export default function Home() {
             {/* Left stats */}
             <div className="lg:col-span-4 space-y-6">
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 text-center space-y-5">
-                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto text-3xl font-bold">🛵</div>
+                <div className="w-16 h-16 bg-primary-light text-primary rounded-full flex items-center justify-center mx-auto text-3xl font-bold">🛵</div>
                 <div>
                   <h3 className="text-lg font-black text-slate-800">{user.name}</h3>
-                  <p className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full inline-block mt-1 uppercase">
+                  <p className="text-[10px] font-bold text-primary bg-primary-light px-3 py-1 rounded-full inline-block mt-1 uppercase">
                     พาร์ทเนอร์คนขับระบบเรียลไทม์
                   </p>
                 </div>
                 
-                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 text-left space-y-1">
+                <div className="bg-[#F7F9FA] border border-slate-100 rounded-2xl p-5 text-left space-y-1">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">กระเป๋าเงินของคุณ (รวมสะสม)</span>
                   <div className="flex justify-between items-baseline">
-                    <span className="text-3xl font-black text-blue-600">฿{riderWallet.toLocaleString()}</span>
+                    <span className="text-3xl font-black text-primary">฿{riderWallet.toLocaleString()}</span>
                     <button
                       onClick={handleWithdraw}
-                      className="text-xs font-bold text-blue-600 hover:underline cursor-pointer"
+                      className="text-xs font-bold text-primary hover:underline cursor-pointer"
                     >
                       ถอนรายได้ →
                     </button>
@@ -1103,17 +1103,17 @@ export default function Home() {
               </div>
 
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
-                <h4 className="text-sm font-bold text-slate-800">ประสิทธิภาพการวิ่งงานวันนี้</h4>
+                <h4 className="text-sm font-black text-slate-850">ประสิทธิภาพการวิ่งงานวันนี้</h4>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50 p-4 rounded-2xl text-center">
+                  <div className="bg-[#F7F9FA] p-4 rounded-2xl text-center">
                     <p className="text-[10px] font-bold text-slate-400 mb-0.5">รับงานสำเร็จ</p>
-                    <p className="text-lg font-bold text-slate-800">
+                    <p className="text-lg font-black text-slate-850">
                       {riderHistory.filter(o => o.status === 'completed').length} งาน
                     </p>
                   </div>
-                  <div className="bg-slate-50 p-4 rounded-2xl text-center">
+                  <div className="bg-[#F7F9FA] p-4 rounded-2xl text-center">
                     <p className="text-[10px] font-bold text-slate-400 mb-0.5">คะแนนสะสม</p>
-                    <p className="text-lg font-bold text-slate-800">5.0 ★</p>
+                    <p className="text-lg font-black text-slate-850">5.0 ★</p>
                   </div>
                 </div>
               </div>
@@ -1125,18 +1125,18 @@ export default function Home() {
               {/* Rider Active Jobs */}
               {riderHistory.some(o => o.status === 'delivering') && (
                 <div className="bg-white rounded-3xl p-6 border-2 border-blue-500 shadow-md space-y-4 animate-slide-up">
-                  <h3 className="text-sm font-black text-blue-600 uppercase flex items-center gap-2">
+                  <h3 className="text-sm font-black text-primary uppercase flex items-center gap-2">
                     <span className="relative flex h-2.5 w-2.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary-light0"></span>
                     </span>
                     งานจัดส่งที่กำลังดำเนินการ (Active Route)
                   </h3>
 
                   {riderHistory.filter(o => o.status === 'delivering').map((activeOrder) => (
-                    <div key={activeOrder.id} className="p-5 border border-blue-100 bg-blue-50/20 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div key={activeOrder.id} className="p-5 border border-primary-light/40 bg-primary-light/20 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                       <div className="space-y-1.5 text-xs">
-                        <p className="font-bold text-slate-800 text-sm">รับของที่: {activeOrder.merchant_name}</p>
+                        <p className="font-black text-slate-850 text-sm">รับของที่: {activeOrder.merchant_name}</p>
                         <p className="font-semibold text-slate-500">นำไปส่งที่: {activeOrder.dest}</p>
                         <p className="text-slate-400">รายการสั่งซื้อ: {activeOrder.items}</p>
                         <p className="text-slate-400">ชื่อลูกค้า: คุณ {activeOrder.customer_name}</p>
@@ -1144,7 +1144,7 @@ export default function Home() {
                       <div className="flex items-center gap-3 w-full md:w-auto pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 justify-between md:justify-end shrink-0">
                         <div className="text-left md:text-right">
                           <span className="text-[9px] text-slate-400 block font-bold">ค่าตอบแทน</span>
-                          <span className="text-base font-black text-blue-600">฿15.00</span>
+                          <span className="text-base font-black text-primary">฿15.00</span>
                         </div>
                         <button
                           onClick={() => handleRiderCompleteJob(activeOrder.id, activeOrder.merchant_name)}
@@ -1183,27 +1183,27 @@ export default function Home() {
                     {riderJobs.map((job) => (
                       <div 
                         key={job.id} 
-                        className="p-5 border border-slate-100 bg-slate-50/50 hover:bg-slate-50 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition duration-300"
+                        className="p-5 border border-slate-100 bg-[#F7F9FA]/50 hover:bg-[#F7F9FA] rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition duration-300"
                       >
                         <div className="space-y-1.5 text-xs">
                           <div className="flex items-center gap-2">
-                            <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-100">
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-primary-light text-primary border border-primary-light/40">
                               สั่งซื้อสินค้า / อาหาร
                             </span>
                             <span className="text-[9px] text-slate-400 font-semibold">ยอดซื้อรวม: ฿{job.total_price}</span>
                           </div>
-                          <h4 className="text-sm font-bold text-slate-800">ร้านค้า: {job.merchant_name}</h4>
+                          <h4 className="text-sm font-black text-slate-850">ร้านค้า: {job.merchant_name}</h4>
                           <p className="text-slate-500">ปลายทางจัดส่ง: {job.dest}</p>
                           <p className="text-slate-400">รายการของ: {job.items}</p>
                         </div>
                         <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-4 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 shrink-0">
                           <div className="text-left md:text-right">
                             <span className="text-[9px] text-slate-400 font-bold block">คุณจะได้ค่าส่ง</span>
-                            <span className="text-lg font-black text-blue-600">฿15</span>
+                            <span className="text-lg font-black text-primary">฿15</span>
                           </div>
                           <button
                             onClick={() => handleRiderAcceptJob(job.id, job.merchant_name)}
-                            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow shadow-blue-100"
+                            className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl transition cursor-pointer shadow shadow-emerald-100/50"
                           >
                             กดรับงานนี้
                           </button>
@@ -1227,7 +1227,7 @@ export default function Home() {
                           <p className="text-[9px] text-slate-400 mt-0.5">ปลายทาง: {historyItem.dest} • {historyItem.items}</p>
                         </div>
                       </div>
-                      <span className="font-extrabold text-blue-600">+฿15</span>
+                      <span className="font-extrabold text-primary">+฿15</span>
                     </div>
                   ))}
                 </div>
@@ -1255,7 +1255,7 @@ export default function Home() {
                   <p className="text-xs text-slate-400 mt-1">ผู้ดูแลร้าน: {user.name}</p>
                 </div>
 
-                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-left">
+                <div className="bg-[#F7F9FA] border border-slate-100 rounded-2xl p-4 text-left">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">รายได้การขายสะสม (ถอนออกได้)</span>
                   <div className="flex justify-between items-baseline mt-1">
                     <span className="text-2xl font-black text-indigo-600">฿{merchantRevenue.toLocaleString()}</span>
@@ -1271,7 +1271,7 @@ export default function Home() {
 
               {/* Add Product Form */}
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
-                <h4 className="text-sm font-bold text-slate-800 pb-2 border-b border-slate-100">
+                <h4 className="text-sm font-black text-slate-850 pb-2 border-b border-slate-100">
                   ➕ เพิ่มรายการ {user.merchantType === 'restaurant' ? 'เมนูอาหาร' : 'สินค้ามินิมาร์ท'}
                 </h4>
                 <form onSubmit={handleAddProduct} className="space-y-4">
@@ -1280,7 +1280,7 @@ export default function Home() {
                     <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">
                       เลือกอิโมจิประจำรายการ
                     </label>
-                    <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded-2xl border border-slate-100/50">
+                    <div className="flex flex-wrap gap-1.5 p-2 bg-[#F7F9FA] rounded-2xl border border-slate-150">
                       {(user.merchantType === 'restaurant' ? REST_EMOJIS : MART_EMOJIS).map(emoji => (
                         <button
                           key={emoji}
@@ -1289,7 +1289,7 @@ export default function Home() {
                           className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition hover:scale-110 cursor-pointer ${
                             selectedEmoji === emoji 
                               ? 'bg-indigo-600 shadow text-white font-bold scale-105' 
-                              : 'bg-white hover:bg-slate-100 text-slate-600'
+                              : 'bg-white hover:bg-slate-50 text-slate-600'
                           }`}
                         >
                           {emoji}
@@ -1304,7 +1304,7 @@ export default function Home() {
                       type="text"
                       value={newProductName}
                       onChange={(e) => setNewProductName(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-[#F7F9FA] text-xs transition"
                       placeholder={user.merchantType === 'restaurant' ? 'เช่น ผัดซีอิ๊วหมู, น้ำเก๊กฮวย' : 'เช่น ผงซักฟอก, น้ำอัดลมกระป๋อง'}
                       required
                     />
@@ -1315,7 +1315,7 @@ export default function Home() {
                       type="number"
                       value={newProductPrice}
                       onChange={(e) => setNewProductPrice(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-[#F7F9FA] text-xs transition"
                       placeholder="เช่น 55"
                       min="1"
                       required
@@ -1352,11 +1352,11 @@ export default function Home() {
                     {merchantProducts.map((prod) => (
                       <div 
                         key={prod.id} 
-                        className="p-4 border border-slate-100 bg-slate-50/30 rounded-2xl flex justify-between items-center hover:bg-slate-50 transition duration-300"
+                        className="p-4 border border-slate-100 bg-[#F7F9FA]/30 rounded-2xl flex justify-between items-center hover:bg-[#F7F9FA] transition duration-300"
                       >
                         <div className="space-y-0.5">
                           <p className="text-xs font-bold text-slate-700">{prod.name}</p>
-                          <p className="text-xs font-black text-indigo-600">฿{prod.price}</p>
+                          <p className="text-xs font-black text-primary">฿{prod.price}</p>
                         </div>
                         <button
                           onClick={() => handleDeleteProduct(prod.id, prod.name)}
@@ -1386,18 +1386,18 @@ export default function Home() {
                         key={ord.id} 
                         className={`p-5 border rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition duration-300 ${
                           ord.status === 'completed' 
-                            ? 'border-slate-100 bg-slate-50/20 opacity-70' 
+                            ? 'border-slate-100 bg-[#F7F9FA]/20 opacity-70' 
                             : 'border-indigo-100 bg-indigo-50/10'
                         }`}
                       >
                         <div className="space-y-1.5 text-xs">
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-50 text-slate-600">
                               #00{ord.id.substr(-4)}
                             </span>
                             <span className="text-[10px] text-slate-400 font-semibold">ปลายทางจัดส่ง: {ord.dest}</span>
                           </div>
-                          <h4 className="text-sm font-bold text-slate-800">{ord.items}</h4>
+                          <h4 className="text-sm font-black text-slate-850">{ord.items}</h4>
                           <p className="text-xs text-slate-500">
                             ยอดรวมร้านค้า: <b>฿{ord.total_price - 15}</b> (+ ค่าส่งไรเดอร์ ฿15) • ชื่อลูกค้า: <b>คุณ {ord.customer_name}</b>
                           </p>
@@ -1428,7 +1428,7 @@ export default function Home() {
                             </span>
                           )}
                           {ord.status === 'delivering' && (
-                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 bg-blue-50 px-3 py-2 rounded-xl">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-primary bg-primary-light px-3 py-2 rounded-xl">
                               🏍️ ไรเดอร์กำลังเดินทางนำส่ง ({ord.rider_name || 'พาร์ทเนอร์'})
                             </span>
                           )}
@@ -1482,7 +1482,7 @@ export default function Home() {
                       type="text"
                       value={newMerchantShopName}
                       onChange={(e) => setNewMerchantShopName(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-[#F7F9FA] text-xs transition"
                       placeholder="เช่น ข้าวมันไก่ป้าแต๋ว, หอหญิงมินิมาร์ท"
                       required
                     />
@@ -1494,7 +1494,7 @@ export default function Home() {
                         type="text"
                         value={newMerchantName}
                         onChange={(e) => setNewMerchantName(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-[#F7F9FA] text-xs transition"
                         placeholder="เช่น สมพร รักดี"
                         required
                       />
@@ -1505,7 +1505,7 @@ export default function Home() {
                         type="text"
                         value={newMerchantPhone}
                         onChange={(e) => setNewMerchantPhone(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-[#F7F9FA] text-xs transition"
                         placeholder="เช่น 0812345678"
                         required
                       />
@@ -1516,7 +1516,7 @@ export default function Home() {
                     <select
                       value={newMerchantType}
                       onChange={(e) => setNewMerchantType(e.target.value as any)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition cursor-pointer"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-[#F7F9FA] text-xs transition cursor-pointer"
                     >
                       <option value="restaurant">🍴 ร้านอาหารพาร์ทเนอร์ (Restaurant)</option>
                       <option value="minimart">🛒 ร้านสะดวกซื้อพาร์ทเนอร์ (Minimart)</option>
@@ -1528,7 +1528,7 @@ export default function Home() {
                       type="email"
                       value={newMerchantEmail}
                       onChange={(e) => setNewMerchantEmail(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-[#F7F9FA] text-xs transition"
                       placeholder="เช่น shopname@gmail.com"
                       required
                     />
@@ -1539,14 +1539,14 @@ export default function Home() {
                       type="password"
                       value={newMerchantPassword}
                       onChange={(e) => setNewMerchantPassword(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-[#F7F9FA] text-xs transition"
                       placeholder="ความยาวขั้นต่ำ 6 ตัวอักษร"
                       required
                     />
                   </div>
                   <button
                     type="submit"
-                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition duration-300 shadow-md shadow-blue-100 cursor-pointer"
+                    className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl transition duration-300 shadow-md shadow-emerald-100/50 cursor-pointer"
                   >
                     ลงทะเบียนและเปิดหน้าร้านใหม่
                   </button>
@@ -1570,7 +1570,7 @@ export default function Home() {
                       type="text"
                       value={newPromoCode}
                       onChange={(e) => setNewPromoCode(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition uppercase font-bold text-slate-800"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-[#F7F9FA] text-xs transition uppercase font-black text-slate-850"
                       placeholder="เช่น LOVEPSU20"
                       required
                     />
@@ -1581,7 +1581,7 @@ export default function Home() {
                       type="number"
                       value={newPromoDiscount}
                       onChange={(e) => setNewPromoDiscount(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-[#F7F9FA] text-xs transition"
                       placeholder="เช่น 20"
                       min="1"
                       required
@@ -1593,7 +1593,7 @@ export default function Home() {
                       type="text"
                       value={newPromoDesc}
                       onChange={(e) => setNewPromoDesc(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-[#F7F9FA] text-xs transition"
                       placeholder="เช่น ลดต้อนรับปีใหม่ ม.อ."
                     />
                   </div>
@@ -1625,7 +1625,7 @@ export default function Home() {
                       <div key={promo.code} className="py-3 flex justify-between items-center text-xs">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-extrabold text-slate-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 text-[10px] uppercase">
+                            <span className="font-extrabold text-slate-800 bg-primary-light px-2 py-0.5 rounded border border-primary-light/40 text-[10px] uppercase">
                               {promo.code}
                             </span>
                             <span className="font-bold text-emerald-600">ลด ฿{promo.discount_amount}</span>
@@ -1693,7 +1693,7 @@ export default function Home() {
           <div className="max-w-md w-full bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-slate-100 animate-slide-up">
             
             {/* Modal Header */}
-            <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-[#F7F9FA]/50">
               <div className="space-y-0.5 text-left">
                 <h3 className="text-sm font-black text-slate-800">เลือกคูปองส่วนลด</h3>
                 <p className="text-[10px] text-slate-400 font-bold">Offers & Promos</p>
@@ -1722,7 +1722,7 @@ export default function Home() {
                       setPromoCodeInput(e.target.value);
                       setPromoError(null);
                     }}
-                    className="flex-1 px-4 py-2.5 rounded-2xl border border-slate-250 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition uppercase font-black text-slate-800"
+                    className="flex-1 px-4 py-2.5 rounded-2xl border border-slate-250 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-[#F7F9FA] text-xs transition uppercase font-black text-slate-800"
                     placeholder="ใส่รหัสส่วนลด เช่น FREE15"
                   />
                   <button
@@ -1730,7 +1730,7 @@ export default function Home() {
                     onClick={() => {
                       handleApplyPromo();
                     }}
-                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-2xl transition cursor-pointer shadow-sm shadow-blue-100"
+                    className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-black rounded-2xl transition cursor-pointer shadow-sm shadow-emerald-100/50"
                   >
                     ใช้งาน
                   </button>
@@ -1796,7 +1796,7 @@ export default function Home() {
                         <div className="flex-1 p-4 pr-12 text-left space-y-1 relative">
                           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                             <h5 className="font-black text-sm text-slate-800">ส่วนลด ฿{promo.discount_amount}</h5>
-                            <span className="text-[8px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded uppercase">
+                            <span className="text-[8px] font-black text-primary bg-primary-light border border-primary-light/40 px-1.5 py-0.5 rounded uppercase">
                               {promo.code}
                             </span>
                           </div>
@@ -1808,7 +1808,7 @@ export default function Home() {
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 shrink-0">
                           <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                             activePromo?.code === promo.code
-                              ? 'border-blue-600 bg-blue-600 text-white'
+                              ? 'border-blue-600 bg-primary text-white'
                               : 'border-slate-300 group-hover:border-blue-400 bg-white'
                           }`}>
                             {activePromo?.code === promo.code && (
@@ -1826,11 +1826,11 @@ export default function Home() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-6 border-t border-slate-100 bg-slate-50/50">
+            <div className="p-6 border-t border-slate-100 bg-[#F7F9FA]/50">
               <button
                 type="button"
                 onClick={() => setIsPromoModalOpen(false)}
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-2xl transition duration-300 shadow shadow-blue-100 cursor-pointer text-center"
+                className="w-full py-3.5 bg-primary hover:bg-primary-hover text-white text-xs font-black rounded-2xl transition duration-300 shadow shadow-emerald-100/50 cursor-pointer text-center"
               >
                 ตกลงเลือกใช้นี้
               </button>
