@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
+import { isSupabaseConfigured } from '../supabase';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -45,6 +46,14 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 md:p-6 font-sans">
       <div className="max-w-md w-full bg-white rounded-[32px] shadow-lg border border-slate-100/50 overflow-hidden p-8 transition-all duration-300 animate-fade-in">
+        
+        {/* Warning banner */}
+        {!isSupabaseConfigured && (
+          <div className="mb-6 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-2xl text-[11px] text-amber-800 space-y-1">
+            <p className="font-bold">⚠️ ตรวจพบว่ายังไม่ได้โหลดตัวแปรสภาพแวดล้อม Supabase</p>
+            <p>กรุณากด <b>Ctrl + C</b> เพื่อหยุดการทำงานของเซิร์ฟเวอร์ใน Terminal แล้วรันคำสั่ง <b>npm run dev</b> ใหม่ เพื่อโหลดค่าจากไฟล์ <b>.env.local</b> ครับ</p>
+          </div>
+        )}
         
         {/* Logo and Greeting */}
         <div className="text-center mb-8">

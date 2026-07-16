@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from './context/AuthContext';
-import { supabase } from './supabase';
+import { supabase, isSupabaseConfigured } from './supabase';
 
 export default function Home() {
   const { user, loading, logout } = useAuth();
@@ -453,12 +453,18 @@ export default function Home() {
       )}
 
       {/* Database Setup Warning */}
-      {dbError && (
-        <div className="bg-red-50 border-y border-red-200 py-3 text-center text-xs text-red-700 font-bold flex items-center justify-center gap-2 animate-fade-in">
-          <span>⚠️ ตรวจพบล้มเหลวในการเชื่อมดาต้าเบส Supabase กรุณาเปิด SQL Editor ใน Supabase แล้วรันเนื้อหาในไฟล์ schema.sql เพื่อเริ่มระบบที่ถูกต้อง!</span>
-          <Link href="/schema.sql" className="underline hover:text-red-900">ดูสคริปต์ SQL</Link>
+      {!isSupabaseConfigured ? (
+        <div className="bg-amber-50 border-y border-amber-200 py-4.5 text-center text-xs text-amber-800 font-bold flex flex-col items-center justify-center gap-1.5 animate-fade-in">
+          <span className="text-sm">⚠️ ตรวจพบว่าแอปยังไม่ได้โหลดตัวแปรสภาพแวดล้อม Supabase จาก .env.local</span>
+          <span className="font-normal text-slate-500">กรุณากด <b>Ctrl + C</b> ใน Terminal เพื่อหยุดเซิร์ฟเวอร์ และรันคำสั่ง <b>npm run dev</b> ใหม่อีกครั้งเพื่อให้ Next.js โหลดค่าครับ</span>
         </div>
-      )}
+      ) : dbError ? (
+        <div className="bg-red-50 border-y border-red-200 py-4.5 text-center text-xs text-red-700 font-bold flex flex-col items-center justify-center gap-1.5 animate-fade-in">
+          <span>⚠️ ตรวจพบล้มเหลวในการเชื่อมดาต้าเบส Supabase (Failed to fetch)</span>
+          <span className="font-normal text-slate-500">กรุณาตรวจสอบว่า: 1. ได้ปิด Ad-blocker บนเว็บเบราว์เซอร์แล้ว (Ad-blocker อาจบล็อกโดเมน *.supabase.co) หรือ 2. รันสคริปต์ใน SQL Editor หรือยัง</span>
+          <Link href="/schema.sql" className="underline hover:text-red-900 font-bold">ดูสคริปต์ SQL ของโปรเจกต์</Link>
+        </div>
+      ) : null}
 
       {/* Main Body */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 md:p-8 space-y-8">
