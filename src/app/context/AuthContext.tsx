@@ -8,7 +8,9 @@ export interface User {
   email: string;
   phone: string;
   studentId?: string;
-  role: 'customer' | 'rider';
+  role: 'customer' | 'rider' | 'merchant';
+  shopName?: string;
+  merchantType?: 'restaurant' | 'minimart';
 }
 
 interface AuthContextType {
@@ -28,30 +30,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize: Load users and check active session
   useEffect(() => {
     try {
-      // Create seed data if no users exist
-      const existingUsers = localStorage.getItem('psu_grab_users');
-      if (!existingUsers) {
-        const seedUsers = [
-          {
-            id: '1',
-            name: 'สมชาย รักดี',
-            email: 'somchai@gmail.com',
-            phone: '0812345678',
-            studentId: '6410110001',
-            role: 'customer',
-            password: 'password123'
-          },
-          {
-            id: '2',
-            name: 'สมหญิง สปีดดี',
-            email: 'somying@gmail.com',
-            phone: '0898765432',
-            studentId: '6410110002',
-            role: 'rider',
-            password: 'password123'
-          }
-        ];
-        localStorage.setItem('psu_grab_users', JSON.stringify(seedUsers));
+      // Create seed data if no users exist or append merchant seeds
+      const existingUsersJson = localStorage.getItem('psu_grab_users');
+      let usersList = existingUsersJson ? JSON.parse(existingUsersJson) : [];
+
+      const seedUsers = [
+        {
+          id: '1',
+          name: 'สมชาย รักดี',
+          email: 'somchai@gmail.com',
+          phone: '0812345678',
+          studentId: '6410110001',
+          role: 'customer',
+          password: 'password123'
+        },
+        {
+          id: '2',
+          name: 'สมหญิง สปีดดี',
+          email: 'somying@gmail.com',
+          phone: '0898765432',
+          studentId: '6410110002',
+          role: 'rider',
+          password: 'password123'
+        },
+        {
+          id: '3',
+          name: 'ป้าศรี หมีข้าวยำ',
+          email: 'krua_psu@gmail.com',
+          phone: '0855555555',
+          role: 'merchant',
+          shopName: 'ครัว ม.อ. (Krua PSU)',
+          merchantType: 'restaurant',
+          password: 'password123'
+        },
+        {
+          id: '4',
+          name: 'เจ๊กิม ขายของชำ',
+          email: 'psu_mart@gmail.com',
+          phone: '0866666666',
+          role: 'merchant',
+          shopName: 'ม.อ. มาร์ท (PSU Mart)',
+          merchantType: 'minimart',
+          password: 'password123'
+        }
+      ];
+
+      // Add only missing seed users
+      let updated = false;
+      seedUsers.forEach(seed => {
+        if (!usersList.some((u: any) => u.email === seed.email)) {
+          usersList.push(seed);
+          updated = true;
+        }
+      });
+
+      if (!existingUsersJson || updated) {
+        localStorage.setItem('psu_grab_users', JSON.stringify(usersList));
       }
 
       // Check current session

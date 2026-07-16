@@ -148,6 +148,8 @@ export default function LoginPage() {
           <div className="text-[10px] text-slate-500 space-y-1">
             <p>• <b>ลูกค้า:</b> somchai@gmail.com (รหัส: password123)</p>
             <p>• <b>ไรเดอร์:</b> somying@gmail.com (รหัส: password123)</p>
+            <p>• <b>ร้านอาหาร:</b> krua_psu@gmail.com (รหัส: password123)</p>
+            <p>• <b>ร้านมินิมาร์ท:</b> psu_mart@gmail.com (รหัส: password123)</p>
           </div>
         </div>
 

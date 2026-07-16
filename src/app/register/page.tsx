@@ -9,7 +9,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const { register } = useAuth();
 
-  const [role, setRole] = useState<'customer' | 'rider'>('customer');
+  const [role, setRole] = useState<'customer' | 'rider' | 'merchant'>('customer');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -17,6 +17,10 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
+  // Merchant specific states
+  const [shopName, setShopName] = useState('');
+  const [merchantType, setMerchantType] = useState<'restaurant' | 'minimart'>('restaurant');
+
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,6 +32,11 @@ export default function RegisterPage() {
     // Validation
     if (!name || !email || !phone || !password || !confirmPassword) {
       setError('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน');
+      return;
+    }
+
+    if (role === 'merchant' && !shopName) {
+      setError('กรุณาระบุชื่อร้านค้าของคุณ');
       return;
     }
 
@@ -52,6 +61,8 @@ export default function RegisterPage() {
       phone,
       studentId: studentId || undefined,
       role,
+      shopName: role === 'merchant' ? shopName : undefined,
+      merchantType: role === 'merchant' ? merchantType : undefined,
       password,
     });
 
@@ -80,29 +91,40 @@ export default function RegisterPage() {
           </Link>
           <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-5">สร้างบัญชีผู้ใช้ใหม่ในระบบ</p>
           
-          {/* Dual Blue Role Selection */}
-          <div className="flex bg-slate-100 p-1.5 rounded-2xl relative z-10 border border-slate-200/30">
+          {/* Triple Blue Role Selection */}
+          <div className="flex bg-slate-100 p-1.5 rounded-2xl relative z-10 border border-slate-200/30 gap-1">
             <button
               type="button"
               onClick={() => setRole('customer')}
-              className={`flex-1 py-3 text-xs font-extrabold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer ${
+              className={`flex-1 py-3 text-[10px] sm:text-xs font-extrabold rounded-xl transition-all duration-300 flex items-center justify-center gap-1 cursor-pointer ${
                 role === 'customer'
-                  ? 'bg-blue-600 text-white shadow-md'
+                  ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              👤 ลูกค้าทั่วไป
+              👤 ลูกค้า
             </button>
             <button
               type="button"
               onClick={() => setRole('rider')}
-              className={`flex-1 py-3 text-xs font-extrabold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer ${
+              className={`flex-1 py-3 text-[10px] sm:text-xs font-extrabold rounded-xl transition-all duration-300 flex items-center justify-center gap-1 cursor-pointer ${
                 role === 'rider'
-                  ? 'bg-sky-600 text-white shadow-md'
+                  ? 'bg-sky-600 text-white shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              🛵 คนขับ/ไรเดอร์
+              🛵 ไรเดอร์
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole('merchant')}
+              className={`flex-1 py-3 text-[10px] sm:text-xs font-extrabold rounded-xl transition-all duration-300 flex items-center justify-center gap-1 cursor-pointer ${
+                role === 'merchant'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              🏪 ร้านค้า
             </button>
           </div>
         </div>
@@ -111,7 +133,7 @@ export default function RegisterPage() {
         {success ? (
           <div className="p-8 text-center flex flex-col items-center justify-center animate-fade-in">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 animate-bounce ${
-              role === 'customer' ? 'bg-blue-50 text-blue-600' : 'bg-sky-50 text-sky-600'
+              role === 'customer' ? 'bg-blue-50 text-blue-600' : role === 'rider' ? 'bg-sky-50 text-sky-600' : 'bg-indigo-50 text-indigo-600'
             }`}>
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -131,15 +153,68 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* Name */}
+            {/* Merchant Shop Details Form Section */}
+            {role === 'merchant' && (
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-4 animate-slide-up">
+                <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider border-b border-slate-200/50 pb-2">ข้อมูลร้านค้าพาร์ทเนอร์</h3>
+                
+                {/* Shop Name */}
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide">ชื่อร้านค้า <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={shopName}
+                    onChange={(e) => setShopName(e.target.value)}
+                    className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-white text-sm transition"
+                    placeholder="เช่น ครัวมะม่วงเบา, ม.อ. คอนเนอร์"
+                    required={role === 'merchant'}
+                  />
+                </div>
+
+                {/* Shop Type Selector */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide">ประเภทของร้านค้า <span className="text-red-500">*</span></label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setMerchantType('restaurant')}
+                      className={`p-3 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
+                        merchantType === 'restaurant'
+                          ? 'border-indigo-600 bg-indigo-50 text-indigo-600 font-bold'
+                          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                      }`}
+                    >
+                      <span className="text-xl">🍔</span>
+                      <span className="text-[11px]">ร้านอาหาร</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMerchantType('minimart')}
+                      className={`p-3 rounded-2xl border text-center transition flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
+                        merchantType === 'minimart'
+                          ? 'border-indigo-600 bg-indigo-50 text-indigo-600 font-bold'
+                          : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                      }`}
+                    >
+                      <span className="text-xl">🛒</span>
+                      <span className="text-[11px]">ร้านมินิมาร์ท</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Owner/Contact Name */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide">ชื่อ - นามสกุล <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide">
+                {role === 'merchant' ? 'ชื่อผู้ดูแลร้านค้า (เจ้าของ)' : 'ชื่อ - นามสกุล'} <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className={`w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:border-transparent outline-none bg-slate-50/50 hover:bg-slate-50 text-sm transition ${
-                  role === 'customer' ? 'focus:ring-blue-500' : 'focus:ring-sky-500'
+                  role === 'customer' ? 'focus:ring-blue-500' : role === 'rider' ? 'focus:ring-sky-500' : 'focus:ring-indigo-500'
                 }`}
                 placeholder="สมชาย รักเรียน"
                 required
@@ -155,7 +230,7 @@ export default function RegisterPage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className={`w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:border-transparent outline-none bg-slate-50/50 hover:bg-slate-50 text-sm transition ${
-                    role === 'customer' ? 'focus:ring-blue-500' : 'focus:ring-sky-500'
+                    role === 'customer' ? 'focus:ring-blue-500' : role === 'rider' ? 'focus:ring-sky-500' : 'focus:ring-indigo-500'
                   }`}
                   placeholder="0812345678"
                   required
@@ -164,13 +239,15 @@ export default function RegisterPage() {
 
               {/* Student ID */}
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide">รหัสนักศึกษา <span className="text-slate-400 font-normal lowercase">(ถ้ามี)</span></label>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide">
+                  {role === 'merchant' ? 'รหัสนักศึกษา (พาร์ทเนอร์)' : 'รหัสนักศึกษา'} <span className="text-slate-400 font-normal lowercase">(ถ้ามี)</span>
+                </label>
                 <input
                   type="text"
                   value={studentId}
                   onChange={(e) => setStudentId(e.target.value)}
                   className={`w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:border-transparent outline-none bg-slate-50/50 hover:bg-slate-50 text-sm transition ${
-                    role === 'customer' ? 'focus:ring-blue-500' : 'focus:ring-sky-500'
+                    role === 'customer' ? 'focus:ring-blue-500' : role === 'rider' ? 'focus:ring-sky-500' : 'focus:ring-indigo-500'
                   }`}
                   placeholder="641011xxxx"
                 />
@@ -179,13 +256,13 @@ export default function RegisterPage() {
 
             {/* Email */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide">อีเมล <span className="text-red-500">*</span></label>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide">อีเมลร้านค้า / อีเมลผู้ใช้ <span className="text-red-500">*</span></label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className={`w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:border-transparent outline-none bg-slate-50/50 hover:bg-slate-50 text-sm transition ${
-                  role === 'customer' ? 'focus:ring-blue-500' : 'focus:ring-sky-500'
+                  role === 'customer' ? 'focus:ring-blue-500' : role === 'rider' ? 'focus:ring-sky-500' : 'focus:ring-indigo-500'
                 }`}
                 placeholder="somchai@gmail.com"
                 required
@@ -200,7 +277,7 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className={`w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:border-transparent outline-none bg-slate-50/50 hover:bg-slate-50 text-sm transition ${
-                  role === 'customer' ? 'focus:ring-blue-500' : 'focus:ring-sky-500'
+                  role === 'customer' ? 'focus:ring-blue-500' : role === 'rider' ? 'focus:ring-sky-500' : 'focus:ring-indigo-500'
                 }`}
                 placeholder="กำหนดรหัสผ่าน (6 ตัวขึ้นไป)"
                 required
@@ -215,7 +292,7 @@ export default function RegisterPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className={`w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:border-transparent outline-none bg-slate-50/50 hover:bg-slate-50 text-sm transition ${
-                  role === 'customer' ? 'focus:ring-blue-500' : 'focus:ring-sky-500'
+                  role === 'customer' ? 'focus:ring-blue-500' : role === 'rider' ? 'focus:ring-sky-500' : 'focus:ring-indigo-500'
                 }`}
                 placeholder="กรอกรหัสผ่านอีกครั้ง"
                 required
@@ -229,7 +306,9 @@ export default function RegisterPage() {
               className={`w-full text-white font-extrabold py-4 px-4 rounded-2xl transition duration-300 shadow-md flex items-center justify-center gap-2 cursor-pointer ${
                 role === 'customer' 
                   ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-100' 
-                  : 'bg-sky-600 hover:bg-sky-700 shadow-sky-100'
+                  : role === 'rider' 
+                  ? 'bg-sky-600 hover:bg-sky-700 shadow-sky-100'
+                  : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'
               } ${isSubmitting ? 'opacity-85 cursor-not-allowed' : ''}`}
             >
               {isSubmitting ? (
@@ -252,7 +331,7 @@ export default function RegisterPage() {
                 <Link 
                   href="/login" 
                   className={`font-extrabold hover:underline ${
-                    role === 'customer' ? 'text-blue-600' : 'text-sky-600'
+                    role === 'customer' ? 'text-blue-600' : role === 'rider' ? 'text-sky-600' : 'text-indigo-600'
                   }`}
                 >
                   คลิกเข้าสู่ระบบ

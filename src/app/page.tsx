@@ -1,17 +1,57 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from './context/AuthContext';
 
 export default function Home() {
   const { user, loading, logout } = useAuth();
   
-  // Simulated State for Interactive Features
+  // Custom states for interactive features
   const [activeCategory, setActiveCategory] = useState<'all' | 'food' | 'ride' | 'express'>('all');
   const [wallet, setWallet] = useState(350);
   const [message, setMessage] = useState<string | null>(null);
   
+  // Merchant Dashboard Specific States
+  const [merchantProducts, setMerchantProducts] = useState<{ id: number; name: string; price: number }[]>([]);
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductPrice, setNewProductPrice] = useState('');
+  
+  const [merchantOrders, setMerchantOrders] = useState<{
+    id: number;
+    items: string;
+    dest: string;
+    price: number;
+    status: 'pending' | 'preparing' | 'calling_rider' | 'completed';
+  }[]>([]);
+
+  // Seed Merchant details when logged in
+  useEffect(() => {
+    if (user && user.role === 'merchant') {
+      if (user.merchantType === 'restaurant') {
+        setMerchantProducts([
+          { id: 1, name: 'ข้าวกะเพราไก่ไข่ดาว', price: 50 },
+          { id: 2, name: 'ข้าวผัดต้มยำทะเล', price: 65 },
+          { id: 3, name: 'ชาเขียวนมสด (โรงช้าง)', price: 30 },
+        ]);
+        setMerchantOrders([
+          { id: 201, items: 'ข้าวกะเพราไก่ไข่ดาว 1 จาน + ชาเขียวนมสด', dest: 'หอพักนักศึกษา 11 (หอหญิง)', price: 80, status: 'pending' },
+          { id: 202, items: 'ข้าวผัดต้มยำทะเล 2 จาน', dest: 'ตึกคณะวิศวกรรมศาสตร์ ชั้น 4', price: 130, status: 'pending' },
+        ]);
+      } else {
+        setMerchantProducts([
+          { id: 1, name: 'น้ำดื่ม ม.อ. (ขวดใหญ่)', price: 12 },
+          { id: 2, name: 'บะหมี่กึ่งสำเร็จรูปรสต้มยำ', price: 15 },
+          { id: 3, name: 'ขนมขบเคี้ยวตราก๊อบกอบ', price: 20 },
+        ]);
+        setMerchantOrders([
+          { id: 301, items: 'น้ำดื่ม ม.อ. 5 ขวด + ขนมขบเคี้ยว 2 ซอง', dest: 'ตึก LRC ห้องสมุดชั้น 3', price: 100, status: 'pending' },
+          { id: 302, items: 'บะหมี่กึ่งสำเร็จรูป 10 ซอง', dest: 'หอพักนักศึกษา 9', price: 150, status: 'pending' },
+        ]);
+      }
+    }
+  }, [user]);
+
   // Mock food stores for Customer to order from
   const mockStores = [
     { id: 1, name: 'ข้าวมันไก่โกต๊อบ (โรงช้าง)', rating: '4.8 ★', time: '15-20 นาที', distance: '0.8 กม.', image: '🍗', category: 'food' },
@@ -31,6 +71,66 @@ export default function Home() {
     { id: 102, title: 'รับส่งนักศึกษา ตึกแดง -> หอ 9', income: 25, time: '11:15 น.' },
   ]);
 
+  // Handlers for Merchant Dashboard
+  const handleAddProduct = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProductName || !newProductPrice) return;
+    const price = parseFloat(newProductPrice);
+    if (isNaN(price)) {
+      alert('กรุณากรอกราคาเป็นตัวเลข');
+      return;
+    }
+    
+    setMerchantProducts(prev => [
+      ...prev,
+      { id: Date.now(), name: newProductName, price }
+    ]);
+    setNewProductName('');
+    setNewProductPrice('');
+    
+    setMessage(`เพิ่มสินค้า/รายการ "${newProductName}" เรียบร้อย!`);
+    setTimeout(() => setMessage(null), 2500);
+  };
+
+  const handleDeleteProduct = (id: number, name: string) => {
+    setMerchantProducts(prev => prev.filter(p => p.id !== id));
+    setMessage(`ลบรายการ "${name}" ออกแล้ว`);
+    setTimeout(() => setMessage(null), 2500);
+  };
+
+  const handleUpdateOrderStatus = (orderId: number, nextStatus: 'preparing' | 'calling_rider' | 'completed', price: number, items: string) => {
+    setMerchantOrders(prev => prev.map(order => {
+      if (order.id === orderId) {
+        return { ...order, status: nextStatus };
+      }
+      return order;
+    }));
+
+    if (nextStatus === 'preparing') {
+      setMessage(`รับออเดอร์ "${items}" แล้ว! เริ่มขั้นตอนจัดเตรียมสินค้า`);
+    } else if (nextStatus === 'calling_rider') {
+      setMessage(`เตรียมสินค้าเสร็จสิ้น! กำลังเรียกไรเดอร์ PSU Grab มารับของ...`);
+      
+      // Simulate rider arriving and picking up after 2.5 seconds
+      setTimeout(() => {
+        setMerchantOrders(prev => prev.map(order => {
+          if (order.id === orderId) {
+            return { ...order, status: 'completed' };
+          }
+          return order;
+        }));
+        setWallet(prev => prev + price);
+        setMessage(`ไรเดอร์นำส่งสินค้าสำเร็จ! รายได้ ฿${price} โอนเข้าบัญชีร้านเรียบร้อย 💰`);
+        setTimeout(() => setMessage(null), 3500);
+      }, 2500);
+    }
+    
+    setTimeout(() => {
+      if (nextStatus !== 'calling_rider') setMessage(null);
+    }, 2500);
+  };
+
+  // Handlers for Customer / Rider Dashboard
   const handleOrderFood = (storeName: string) => {
     setMessage(`สั่งซื้อจาก "${storeName}" สำเร็จ! ไรเดอร์กำลังเตรียมรับงานของคุณ 🛵`);
     setTimeout(() => setMessage(null), 3500);
@@ -94,9 +194,11 @@ export default function Home() {
                   <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide ${
                     user.role === 'customer' 
                       ? 'bg-blue-50 text-blue-600 border border-blue-100' 
-                      : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                      : user.role === 'rider'
+                      ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                      : 'bg-indigo-50 text-indigo-600 border border-indigo-100'
                   }`}>
-                    {user.role === 'customer' ? 'ลูกค้า' : 'คนขับ / ไรเดอร์'}
+                    {user.role === 'customer' ? 'ลูกค้า' : user.role === 'rider' ? 'คนขับ / ไรเดอร์' : `ร้านค้า (${user.merchantType === 'restaurant' ? 'ร้านอาหาร' : 'มินิมาร์ท'})`}
                   </span>
                 </div>
                 <button
@@ -144,7 +246,6 @@ export default function Home() {
           <div className="space-y-10 py-4 animate-fade-in">
             {/* Grab Style Banner Card */}
             <div className="bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-700 rounded-[32px] p-8 md:p-12 text-white shadow-xl relative overflow-hidden flex flex-col lg:flex-row justify-between items-center gap-8">
-              {/* Decorative circle grids to simulate Grab app's abstract branding */}
               <div className="absolute right-0 top-0 opacity-15 pointer-events-none translate-x-20 -translate-y-20">
                 <svg width="400" height="400" viewBox="0 0 100 100" fill="none"><circle cx="50" cy="50" r="40" stroke="white" strokeWidth="8" /></svg>
               </div>
@@ -161,7 +262,7 @@ export default function Home() {
                   เดินทางก็สบายกับ <span className="underline decoration-wavy decoration-yellow-400">PSU Grab</span>
                 </h1>
                 <p className="text-blue-100 text-sm md:text-base font-medium leading-relaxed">
-                  ครบจบในเว็บเดียว ทั้งบริการส่งอาหารจากโรงช้างและรอบๆ ม.อ. และระบบเรียกรถมอเตอร์ไซค์ด่วน สะดวก รวดเร็ว สบายกระเป๋าสำหรับคนในวิทยาเขต
+                  ครบจบในเว็บเดียว ทั้งบริการสั่งซื้ออาหาร ของชำ รวมถึงการเรียกรถมอเตอร์ไซค์ด่วน สะดวก รวดเร็ว สบายกระเป๋าสำหรับคนในวิทยาเขต
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start pt-2">
                   <Link
@@ -174,7 +275,7 @@ export default function Home() {
                     href="/register"
                     className="px-8 py-4 bg-blue-500/30 hover:bg-blue-500/50 text-white font-extrabold rounded-2xl text-center border border-white/20 transition hover:-translate-y-0.5 duration-300"
                   >
-                    สมัครเป็นคนขับ/ไรเดอร์
+                    สมัครร้านค้า / ไรเดอร์พาร์ทเนอร์
                   </Link>
                 </div>
               </div>
@@ -189,7 +290,7 @@ export default function Home() {
                   {/* Mock search input */}
                   <div className="bg-slate-100 p-3 rounded-2xl flex items-center gap-2 text-slate-400 text-xs border border-slate-200/50">
                     <span>🔍</span>
-                    <span>ค้นหาร้านอาหาร หรือจุดรับส่งใน ม.อ.</span>
+                    <span>ค้นหาร้านค้า หรือบริการใน ม.อ.</span>
                   </div>
                 </div>
 
@@ -238,10 +339,10 @@ export default function Home() {
                   <p className="text-xs text-blue-100 mb-4">ค่าบริการส่งฟรีเมื่อมียอดครบ ฿120 ขึ้นไป</p>
                   <span className="text-[10px] bg-white text-blue-600 px-3 py-1 rounded-full font-bold">คุ้มตลอดวัน</span>
                 </div>
-                <div className="min-w-[280px] md:min-w-[320px] bg-gradient-to-r from-blue-600 to-indigo-800 p-6 rounded-3xl text-white shadow-md flex-1">
-                  <p className="text-[10px] font-bold tracking-widest uppercase text-blue-100">สิทธิพิเศษไรเดอร์</p>
-                  <h3 className="text-lg font-black mt-1 mb-2">รับส่วนแบ่ง 90% เต็ม</h3>
-                  <p className="text-xs text-blue-100 mb-4">สมัครไรเดอร์ไม่มีค่าคอมมิชชันแอบแฝง</p>
+                <div className="min-w-[280px] md:min-w-[320px] bg-gradient-to-r from-indigo-600 to-slate-800 p-6 rounded-3xl text-white shadow-md flex-1">
+                  <p className="text-[10px] font-bold tracking-widest uppercase text-slate-100">สิทธิร้านค้าพาร์ทเนอร์</p>
+                  <h3 className="text-lg font-black mt-1 mb-2">ขยายฐานลูกค้าใน ม.อ.</h3>
+                  <p className="text-xs text-slate-100 mb-4">ลงทะเบียนร้านค้าฟรีและจัดการสินค้าได้อิสระ</p>
                   <span className="text-[10px] bg-white text-blue-600 px-3 py-1 rounded-full font-bold">สมัครเลย</span>
                 </div>
               </div>
@@ -285,7 +386,7 @@ export default function Home() {
               {/* Booking & Ordering Area */}
               <div className="lg:col-span-2 space-y-6">
                 
-                {/* 1. Quick Booking Ride Card (GrabBike style) */}
+                {/* 1. Quick Booking Ride Card */}
                 {(activeCategory === 'all') && (
                   <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
                     <h3 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
@@ -322,7 +423,7 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* 2. Restaurants Section (GrabFood style) */}
+                {/* 2. Restaurants Section */}
                 {(activeCategory === 'all' || activeCategory === 'food') && (
                   <div className="space-y-4">
                     <h3 className="text-lg font-extrabold text-slate-800">
@@ -358,9 +459,8 @@ export default function Home() {
 
               </div>
 
-              {/* Sidebar Info (Order History & Promo Info) */}
+              {/* Sidebar Info */}
               <div className="space-y-6">
-                {/* Active promotion voucher display */}
                 <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-3xl p-6 shadow-md space-y-4">
                   <h4 className="text-sm font-bold tracking-wider uppercase text-blue-100">โปรโมชันพิเศษเฉพาะคุณ</h4>
                   <div className="border-t border-white/10 pt-3">
@@ -372,7 +472,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* History widget */}
                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
                   <h4 className="text-sm font-bold text-slate-800 pb-2 border-b border-slate-100">ประวัติการเดินทาง / สั่งซื้อ</h4>
                   <div className="divide-y divide-slate-100 text-xs">
@@ -401,7 +500,6 @@ export default function Home() {
         {/* CASE 3: RIDER DASHBOARD */}
         {user && user.role === 'rider' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 py-2 animate-fade-in">
-            {/* Left Column: Driver Wallet & Stats */}
             <div className="lg:col-span-4 space-y-6">
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 text-center space-y-5">
                 <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto text-3xl font-bold">🛵</div>
@@ -412,7 +510,6 @@ export default function Home() {
                   </p>
                 </div>
                 
-                {/* Grab Wallet Style */}
                 <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 text-left space-y-1">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">รายได้คงเหลือ (กระเป๋าเงิน)</span>
                   <div className="flex justify-between items-baseline">
@@ -427,7 +524,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Today statistics */}
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
                 <h4 className="text-sm font-bold text-slate-800">ผลงานในวันนี้ของคุณ</h4>
                 <div className="grid grid-cols-2 gap-4">
@@ -443,10 +539,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right Column: Open jobs in system */}
             <div className="lg:col-span-8 space-y-6">
-              
-              {/* Job Feed */}
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
                 <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                   <h3 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
@@ -506,7 +599,6 @@ export default function Home() {
                 )}
               </div>
 
-              {/* History */}
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
                 <h3 className="text-base font-extrabold text-slate-800 border-b border-slate-100 pb-3">ประวัติการทำงานวันนี้ของคุณ</h3>
                 <div className="divide-y divide-slate-100">
@@ -520,6 +612,184 @@ export default function Home() {
                         </div>
                       </div>
                       <span className="font-extrabold text-blue-600">+฿{historyItem.income}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* CASE 4: MERCHANT DASHBOARD */}
+        {user && user.role === 'merchant' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 py-2 animate-fade-in">
+            {/* Left Column: Store Profile & Add Product Form */}
+            <div className="lg:col-span-4 space-y-6">
+              {/* Store Profile Card */}
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 text-center space-y-4">
+                <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-3xl font-bold">
+                  {user.merchantType === 'restaurant' ? '🍔' : '🛒'}
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-wider">
+                    พาร์ทเนอร์: {user.merchantType === 'restaurant' ? 'ร้านอาหาร' : 'มินิมาร์ท'}
+                  </span>
+                  <h3 className="text-xl font-black text-slate-800 mt-3">{user.shopName}</h3>
+                  <p className="text-xs text-slate-400 mt-1">ผู้ดูแลร้าน: {user.name}</p>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-left">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">รายได้การขายสะสม</span>
+                  <div className="flex justify-between items-baseline mt-1">
+                    <span className="text-2xl font-black text-indigo-600">฿{wallet.toLocaleString()}</span>
+                    <button
+                      onClick={handleWithdraw}
+                      className="text-xs font-bold text-indigo-600 hover:underline cursor-pointer"
+                    >
+                      ถอนเงิน →
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Add Product Form */}
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
+                <h4 className="text-sm font-bold text-slate-800 pb-2 border-b border-slate-100">
+                  ➕ เพิ่มรายการ {user.merchantType === 'restaurant' ? 'เมนูอาหาร' : 'สินค้ามินิมาร์ท'}
+                </h4>
+                <form onSubmit={handleAddProduct} className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">ชื่อสินค้า / เมนู</label>
+                    <input
+                      type="text"
+                      value={newProductName}
+                      onChange={(e) => setNewProductName(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                      placeholder={user.merchantType === 'restaurant' ? 'เช่น ผัดซีอิ๊วหมู, น้ำเก๊กฮวย' : 'เช่น ผงซักฟอก, น้ำอัดลมกระป๋อง'}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">ราคาขาย (บาท)</label>
+                    <input
+                      type="number"
+                      value={newProductPrice}
+                      onChange={(e) => setNewProductPrice(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                      placeholder="เช่น 55"
+                      min="1"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition duration-300 cursor-pointer shadow-md shadow-indigo-100"
+                  >
+                    เพิ่มสินค้าเข้าหน้าร้าน
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* Right Column: Menu List & Simulated Orders Feed */}
+            <div className="lg:col-span-8 space-y-6">
+              
+              {/* Product List Manager */}
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
+                <h3 className="text-base font-extrabold text-slate-800 border-b border-slate-100 pb-3 flex justify-between items-center">
+                  <span>📋 สินค้าในหน้าร้านทั้งหมด</span>
+                  <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                    {merchantProducts.length} รายการ
+                  </span>
+                </h3>
+
+                {merchantProducts.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-slate-400">
+                    ไม่มีสินค้าในหน้าร้าน กรุณาเพิ่มรายการด้านซ้าย
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {merchantProducts.map((prod) => (
+                      <div 
+                        key={prod.id} 
+                        className="p-4 border border-slate-100 bg-slate-50/30 rounded-2xl flex justify-between items-center hover:bg-slate-50 transition duration-300"
+                      >
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-bold text-slate-700">{prod.name}</p>
+                          <p className="text-xs font-black text-indigo-600">฿{prod.price}</p>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteProduct(prod.id, prod.name)}
+                          className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition text-xs font-bold cursor-pointer"
+                          title="ลบสินค้านี้"
+                        >
+                          ลบออก
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Incoming Orders Simulator */}
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
+                <h3 className="text-base font-extrabold text-slate-800 border-b border-slate-100 pb-3">
+                  🔔 ออเดอร์ลูกค้าส่งเข้ามา (จำลองสถานะจริง)
+                </h3>
+
+                <div className="space-y-3">
+                  {merchantOrders.map((ord) => (
+                    <div 
+                      key={ord.id} 
+                      className={`p-5 border rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition duration-300 ${
+                        ord.status === 'completed' 
+                          ? 'border-slate-100 bg-slate-50/20 opacity-70' 
+                          : 'border-indigo-100 bg-indigo-50/10'
+                      }`}
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                            #00{ord.id}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-semibold">ปลายทาง: {ord.dest}</span>
+                        </div>
+                        <h4 className="text-xs font-bold text-slate-800">{ord.items}</h4>
+                        <p className="text-xs font-black text-indigo-600">ราคาสินค้า: ฿{ord.price}</p>
+                      </div>
+
+                      {/* Interactive order steps */}
+                      <div className="shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 w-full md:w-auto text-right">
+                        {ord.status === 'pending' && (
+                          <button
+                            onClick={() => handleUpdateOrderStatus(ord.id, 'preparing', ord.price, ord.items)}
+                            className="w-full md:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition duration-300 cursor-pointer"
+                          >
+                            รับออเดอร์นี้
+                          </button>
+                        )}
+                        {ord.status === 'preparing' && (
+                          <button
+                            onClick={() => handleUpdateOrderStatus(ord.id, 'calling_rider', ord.price, ord.items)}
+                            className="w-full md:w-auto px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold rounded-xl transition duration-300 cursor-pointer"
+                          >
+                            เตรียมเสร็จสิ้น (เรียกไรเดอร์)
+                          </button>
+                        )}
+                        {ord.status === 'calling_rider' && (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-xl animate-pulse">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+                            ไรเดอร์กำลังมารับของ...
+                          </span>
+                        )}
+                        {ord.status === 'completed' && (
+                          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-100 inline-block">
+                            จัดส่งสำเร็จเรียบร้อย
+                          </span>
+                        )}
+                      </div>
+
                     </div>
                   ))}
                 </div>
