@@ -5,6 +5,9 @@ import Link from 'next/link';
 import { useAuth } from './context/AuthContext';
 import { supabase, isSupabaseConfigured } from './supabase';
 
+const REST_EMOJIS = ['🍔', '🍕', '🍜', '🍛', '🍱', '🥗', '🥤', '🍵', '🍰', '🍨', '🍳', '🍗'];
+const MART_EMOJIS = ['🥤', '🥛', '🍪', '🍫', '🍜', '🧴', '🧼', '🧻', '🔋', '🩹', '🧺', '🍎'];
+
 export default function Home() {
   const { user, loading, logout } = useAuth();
   
@@ -20,6 +23,9 @@ export default function Home() {
   const [cart, setCart] = useState<{ id: string; name: string; price: number; quantity: number }[]>([]);
   const [deliveryDest, setDeliveryDest] = useState('');
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [activePromo, setActivePromo] = useState<any | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
 
   // Merchant states
   const [merchantProducts, setMerchantProducts] = useState<any[]>([]);
@@ -27,11 +33,31 @@ export default function Home() {
   const [newProductPrice, setNewProductPrice] = useState('');
   const [merchantOrders, setMerchantOrders] = useState<any[]>([]);
   const [merchantRevenue, setMerchantRevenue] = useState<number>(0);
+  const [selectedEmoji, setSelectedEmoji] = useState('🍔');
+
+  useEffect(() => {
+    if (user && user.role === 'merchant') {
+      setSelectedEmoji(user.merchantType === 'restaurant' ? '🍔' : '🥤');
+    }
+  }, [user]);
 
   // Rider states
   const [riderJobs, setRiderJobs] = useState<any[]>([]);
   const [riderHistory, setRiderHistory] = useState<any[]>([]);
   const [riderWallet, setRiderWallet] = useState<number>(0);
+
+  // Admin states
+  const [adminPromoCodes, setAdminPromoCodes] = useState<any[]>([]);
+  const [newPromoCode, setNewPromoCode] = useState('');
+  const [newPromoDiscount, setNewPromoDiscount] = useState('');
+  const [newPromoDesc, setNewPromoDesc] = useState('');
+
+  const [newMerchantName, setNewMerchantName] = useState('');
+  const [newMerchantEmail, setNewMerchantEmail] = useState('');
+  const [newMerchantPhone, setNewMerchantPhone] = useState('');
+  const [newMerchantShopName, setNewMerchantShopName] = useState('');
+  const [newMerchantType, setNewMerchantType] = useState<'restaurant' | 'minimart'>('restaurant');
+  const [newMerchantPassword, setNewMerchantPassword] = useState('');
 
   // -------------------------------------------------------------
   // CUSTOMER ACTIONS & SYNC
@@ -45,8 +71,8 @@ export default function Home() {
       if (error) throw error;
       setMerchants(data || []);
       setDbError(false);
-    } catch (err) {
-      console.error('Failed to fetch merchants', err);
+    } catch (err: any) {
+      console.error('Failed to fetch merchants:', err.message || err);
       setDbError(true);
     }
   };
@@ -59,8 +85,8 @@ export default function Home() {
         .eq('merchant_id', merchantId);
       if (error) throw error;
       setSelectedMerchantProducts(data || []);
-    } catch (err) {
-      console.error('Failed to fetch products', err);
+    } catch (err: any) {
+      console.error('Failed to fetch products:', err.message || err);
     }
   };
 
@@ -104,7 +130,9 @@ export default function Home() {
 
     const orderId = 'ord-' + Math.random().toString(36).substr(2, 9);
     const itemsText = cart.map(item => `${item.name} (${item.quantity}x)`).join(', ');
-    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0) + 15; // ฿15 delivery fee
+    const discount = activePromo ? activePromo.discount_amount : 0;
+    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const total = Math.max(0, subtotal - discount) + 15; // ฿15 delivery fee
 
     try {
       const { error } = await supabase
@@ -115,7 +143,7 @@ export default function Home() {
           customer_name: user.name,
           merchant_id: selectedMerchant.id,
           merchant_name: selectedMerchant.shopName || selectedMerchant.name,
-          items: itemsText,
+          items: itemsText + (activePromo ? ` (ใช้ส่วนลด ${activePromo.code}: -฿${discount})` : ''),
           total_price: total,
           dest: deliveryDest.trim(),
           status: 'pending'
@@ -126,6 +154,8 @@ export default function Home() {
       setCart([]);
       setDeliveryDest('');
       setSelectedMerchant(null);
+      setActivePromo(null);
+      setPromoCodeInput('');
       setMessage(`สั่งสินค้าเรียบร้อย! ส่งคำสั่งซื้อไปยังร้านค้าแล้ว 🍔`);
       fetchCustomerOrders();
       setTimeout(() => setMessage(null), 3000);
@@ -182,13 +212,14 @@ export default function Home() {
     }
 
     const prodId = 'prod-' + Math.random().toString(36).substr(2, 9);
+    const fullName = `${selectedEmoji} ${newProductName.trim()}`;
     try {
       const { error } = await supabase
         .from('products')
         .insert([{
           id: prodId,
           merchant_id: user.id,
-          name: newProductName,
+          name: fullName,
           price: price
         }]);
 
@@ -313,6 +344,135 @@ export default function Home() {
     }
   };
 
+  // -------------------------------------------------------------
+  // ADMIN & PROMO ACTIONS
+  // -------------------------------------------------------------
+  const fetchPromoCodes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('promo_codes')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setAdminPromoCodes(data || []);
+    } catch (err: any) {
+      console.error('Failed to fetch promo codes:', err.message || err);
+    }
+  };
+
+  const handleApplyPromo = async () => {
+    setPromoError(null);
+    if (!promoCodeInput.trim()) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('promo_codes')
+        .select('*')
+        .eq('code', promoCodeInput.trim().toUpperCase())
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setActivePromo(data);
+        setMessage(`ใช้โค้ดส่วนลด "${data.code}" สำเร็จ! ลดราคา ฿${data.discount_amount}`);
+        setTimeout(() => setMessage(null), 3000);
+      } else {
+        setPromoError('ไม่พบโค้ดส่วนลดนี้ หรือโค้ดหมดอายุแล้ว');
+      }
+    } catch (err: any) {
+      setPromoError('เกิดข้อผิดพลาดในการตรวจสอบโค้ด');
+    }
+  };
+
+  const handleAdminAddMerchant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMerchantName || !newMerchantEmail || !newMerchantPhone || !newMerchantShopName || !newMerchantPassword) {
+      alert('กรุณากรอกข้อมูลร้านค้าพาร์ทเนอร์ให้ครบถ้วน');
+      return;
+    }
+
+    const merchantId = 'merch-' + Math.random().toString(36).substr(2, 9);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .insert([{
+          id: merchantId,
+          name: newMerchantName.trim(),
+          email: newMerchantEmail.trim(),
+          phone: newMerchantPhone.trim(),
+          role: 'merchant',
+          shop_name: newMerchantShopName.trim(),
+          merchant_type: newMerchantType,
+          password: newMerchantPassword
+        }]);
+
+      if (error) throw error;
+
+      setMessage(`ลงทะเบียนร้านค้า "${newMerchantShopName}" สำเร็จ!`);
+      setNewMerchantName('');
+      setNewMerchantEmail('');
+      setNewMerchantPhone('');
+      setNewMerchantShopName('');
+      setNewMerchantPassword('');
+      fetchMerchants();
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      alert(`เพิ่มร้านค้าล้มเหลว: ${err.message}`);
+    }
+  };
+
+  const handleAdminAddPromo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPromoCode || !newPromoDiscount) {
+      alert('กรุณากรอกรหัสโค้ดและจำนวนส่วนลด');
+      return;
+    }
+    const discount = parseFloat(newPromoDiscount);
+    if (isNaN(discount) || discount <= 0) {
+      alert('กรุณาระบุมูลค่าส่วนลดที่ถูกต้อง');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('promo_codes')
+        .insert([{
+          code: newPromoCode.trim().toUpperCase(),
+          discount_amount: discount,
+          description: newPromoDesc.trim() || null
+        }]);
+
+      if (error) throw error;
+
+      setMessage(`สร้างโค้ดโปรโมชัน "${newPromoCode.toUpperCase()}" สำเร็จ!`);
+      setNewPromoCode('');
+      setNewPromoDiscount('');
+      setNewPromoDesc('');
+      fetchPromoCodes();
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      alert(`สร้างโค้ดล้มเหลว: ${err.message}`);
+    }
+  };
+
+  const handleAdminDeletePromo = async (code: string) => {
+    if (!confirm(`คุณต้องการลบรหัสคูปอง "${code}" ใช่หรือไม่?`)) return;
+    try {
+      const { error } = await supabase
+        .from('promo_codes')
+        .delete()
+        .eq('code', code);
+      if (error) throw error;
+
+      setMessage(`ลบโค้ดโปรโมชัน "${code}" สำเร็จแล้ว`);
+      fetchPromoCodes();
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      alert(`ลบโค้ดล้มเหลว: ${err.message}`);
+    }
+  };
+
   const handleWithdraw = () => {
     const amount = user?.role === 'rider' ? riderWallet : merchantRevenue;
     if (amount <= 0) {
@@ -344,6 +504,9 @@ export default function Home() {
       } else if (user.role === 'rider') {
         fetchRiderJobs();
         fetchRiderHistory();
+      } else if (user.role === 'admin') {
+        fetchMerchants();
+        fetchPromoCodes();
       }
     }
 
@@ -365,8 +528,28 @@ export default function Home() {
       })
       .subscribe();
 
+    // Subscribe to all changes in promo_codes table
+    const promosChannel = supabase
+      .channel('promos-realtime-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'promo_codes' }, (payload) => {
+        if (user && user.role === 'admin') {
+          fetchPromoCodes();
+        }
+      })
+      .subscribe();
+
+    // Subscribe to all changes in profiles table (to sync merchants)
+    const profilesChannel = supabase
+      .channel('profiles-realtime-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload) => {
+        fetchMerchants();
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(ordersChannel);
+      supabase.removeChannel(promosChannel);
+      supabase.removeChannel(profilesChannel);
     };
   }, [user, loading]);
 
@@ -688,14 +871,68 @@ export default function Home() {
                         <span className="text-slate-500">ราคาสินค้า</span>
                         <span>฿{cart.reduce((sum, item) => sum + item.price * item.quantity, 0)}</span>
                       </div>
+                      {activePromo && (
+                        <div className="flex justify-between text-emerald-600 font-bold">
+                          <span>ส่วนลดคูปอง ({activePromo.code})</span>
+                          <span>-฿{activePromo.discount_amount}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between font-medium">
                         <span className="text-slate-500">ค่าจัดส่งโดยไรเดอร์</span>
                         <span className="text-blue-600 font-bold">฿15</span>
                       </div>
                       <div className="flex justify-between font-black text-sm border-t border-slate-100 pt-2 text-slate-800">
                         <span>ราคารวมทั้งหมด</span>
-                        <span>฿{cart.reduce((sum, item) => sum + item.price * item.quantity, 0) + 15}</span>
+                        <span>฿{Math.max(0, cart.reduce((sum, item) => sum + item.price * item.quantity, 0) - (activePromo ? activePromo.discount_amount : 0)) + 15}</span>
                       </div>
+                    </div>
+
+                    {/* Promo Code Coupon Input */}
+                    <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        กรอกโค้ดส่วนลดโปรโมชัน
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={promoCodeInput}
+                          onChange={(e) => {
+                            setPromoCodeInput(e.target.value);
+                            setPromoError(null);
+                          }}
+                          disabled={!!activePromo}
+                          className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition uppercase font-bold text-slate-800"
+                          placeholder="เช่น PSUNEW50, FREE15"
+                        />
+                        {activePromo ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActivePromo(null);
+                              setPromoCodeInput('');
+                            }}
+                            className="px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold rounded-xl transition cursor-pointer"
+                          >
+                            ยกเลิก
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleApplyPromo}
+                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                          >
+                            ใช้งาน
+                          </button>
+                        )}
+                      </div>
+                      {promoError && (
+                        <p className="text-[10px] text-red-500 font-bold">{promoError}</p>
+                      )}
+                      {activePromo && (
+                        <p className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 mt-1">
+                          <span>✓</span> คูปองสำเร็จ ลดเพิ่ม ฿{activePromo.discount_amount} ({activePromo.description || 'ส่วนลด'})
+                        </p>
+                      )}
                     </div>
 
                     {/* Delivery Destination Input */}
@@ -973,6 +1210,29 @@ export default function Home() {
                   ➕ เพิ่มรายการ {user.merchantType === 'restaurant' ? 'เมนูอาหาร' : 'สินค้ามินิมาร์ท'}
                 </h4>
                 <form onSubmit={handleAddProduct} className="space-y-4">
+                  {/* Emoji Selector */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                      เลือกอิโมจิประจำรายการ
+                    </label>
+                    <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded-2xl border border-slate-100/50">
+                      {(user.merchantType === 'restaurant' ? REST_EMOJIS : MART_EMOJIS).map(emoji => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => setSelectedEmoji(emoji)}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition hover:scale-110 cursor-pointer ${
+                            selectedEmoji === emoji 
+                              ? 'bg-indigo-600 shadow text-white font-bold scale-105' 
+                              : 'bg-white hover:bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="space-y-1">
                     <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wide">ชื่อสินค้า / เมนู</label>
                     <input
@@ -1121,6 +1381,242 @@ export default function Home() {
               </div>
 
             </div>
+          </div>
+        )}
+
+        {/* CASE 5: ADMIN DASHBOARD */}
+        {user && user.role === 'admin' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 py-2 animate-fade-in">
+            
+            {/* Left Column: Admin Profile & Add Merchant Partner */}
+            <div className="lg:col-span-5 space-y-6">
+              
+              {/* Admin Profile Card */}
+              <div className="bg-gradient-to-br from-indigo-700 to-blue-800 rounded-3xl p-6 text-white shadow-md text-center space-y-4">
+                <div className="w-16 h-16 bg-white/10 text-white rounded-full flex items-center justify-center mx-auto text-3xl font-bold border border-white/20">
+                  ⚙️
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-blue-200 bg-white/10 border border-white/10 px-3 py-1 rounded-full uppercase tracking-wider">
+                    ผู้ดูแลระบบหลัก (Super Admin)
+                  </span>
+                  <h3 className="text-xl font-black mt-3">{user.name}</h3>
+                  <p className="text-xs text-blue-200 mt-1">อีเมลติดต่อ: {user.email}</p>
+                </div>
+              </div>
+
+              {/* Add Merchant Partner Form */}
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
+                <h4 className="text-sm font-extrabold text-slate-800 pb-2 border-b border-slate-100 flex items-center gap-1.5">
+                  🏢 <span>ลงทะเบียนร้านค้าพาร์ทเนอร์ใหม่</span>
+                </h4>
+                <form onSubmit={handleAdminAddMerchant} className="space-y-3.5 text-xs">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">ชื่อร้านค้า (Shop Name)</label>
+                    <input
+                      type="text"
+                      value={newMerchantShopName}
+                      onChange={(e) => setNewMerchantShopName(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                      placeholder="เช่น ข้าวมันไก่ป้าแต๋ว, หอหญิงมินิมาร์ท"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">ชื่อผู้ดูแลร้าน (Owner Name)</label>
+                      <input
+                        type="text"
+                        value={newMerchantName}
+                        onChange={(e) => setNewMerchantName(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                        placeholder="เช่น สมพร รักดี"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">เบอร์โทรศัพท์ (Phone)</label>
+                      <input
+                        type="text"
+                        value={newMerchantPhone}
+                        onChange={(e) => setNewMerchantPhone(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                        placeholder="เช่น 0812345678"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">ประเภทบริการ (Merchant Type)</label>
+                    <select
+                      value={newMerchantType}
+                      onChange={(e) => setNewMerchantType(e.target.value as any)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition cursor-pointer"
+                    >
+                      <option value="restaurant">🍴 ร้านอาหารพาร์ทเนอร์ (Restaurant)</option>
+                      <option value="minimart">🛒 ร้านสะดวกซื้อพาร์ทเนอร์ (Minimart)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">อีเมลล็อกอิน (Login Email)</label>
+                    <input
+                      type="email"
+                      value={newMerchantEmail}
+                      onChange={(e) => setNewMerchantEmail(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                      placeholder="เช่น shopname@gmail.com"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">รหัสผ่านล็อกอิน (Login Password)</label>
+                    <input
+                      type="password"
+                      value={newMerchantPassword}
+                      onChange={(e) => setNewMerchantPassword(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                      placeholder="ความยาวขั้นต่ำ 6 ตัวอักษร"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition duration-300 shadow-md shadow-blue-100 cursor-pointer"
+                  >
+                    ลงทะเบียนและเปิดหน้าร้านใหม่
+                  </button>
+                </form>
+              </div>
+
+            </div>
+
+            {/* Right Column: Manage Promo Codes & Existing Merchants List */}
+            <div className="lg:col-span-7 space-y-6">
+              
+              {/* Create Promo Code form */}
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
+                <h4 className="text-sm font-extrabold text-slate-800 pb-2 border-b border-slate-100 flex items-center gap-1.5">
+                  🏷️ <span>สร้างรหัสคูปองส่วนลดโปรโมชัน</span>
+                </h4>
+                <form onSubmit={handleAdminAddPromo} className="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">รหัสโค้ดส่วนลด</label>
+                    <input
+                      type="text"
+                      value={newPromoCode}
+                      onChange={(e) => setNewPromoCode(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition uppercase font-bold text-slate-800"
+                      placeholder="เช่น LOVEPSU20"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">มูลค่าส่วนลด (บาท)</label>
+                    <input
+                      type="number"
+                      value={newPromoDiscount}
+                      onChange={(e) => setNewPromoDiscount(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                      placeholder="เช่น 20"
+                      min="1"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">คำอธิบาย</label>
+                    <input
+                      type="text"
+                      value={newPromoDesc}
+                      onChange={(e) => setNewPromoDesc(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-slate-50 text-xs transition"
+                      placeholder="เช่น ลดต้อนรับปีใหม่ ม.อ."
+                    />
+                  </div>
+                  <div className="md:col-span-3 pt-1">
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition duration-300 shadow-md shadow-indigo-100 cursor-pointer"
+                    >
+                      สร้างและเผยแพร่คูปองจัดโปร
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Promo Codes Manager Table */}
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
+                <h3 className="text-base font-extrabold text-slate-800 border-b border-slate-100 pb-3 flex justify-between items-center">
+                  <span>🏷️ คูปองส่วนลดในระบบทั้งหมด</span>
+                  <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                    {adminPromoCodes.length} รหัส
+                  </span>
+                </h3>
+
+                {adminPromoCodes.length === 0 ? (
+                  <p className="text-xs text-slate-400 py-8 text-center">ไม่มีคูปองจัดโปรโมชันในระบบ</p>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {adminPromoCodes.map((promo) => (
+                      <div key={promo.code} className="py-3 flex justify-between items-center text-xs">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-slate-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 text-[10px] uppercase">
+                              {promo.code}
+                            </span>
+                            <span className="font-bold text-emerald-600">ลด ฿{promo.discount_amount}</span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 mt-1">{promo.description || 'ไม่มีคำอธิบาย'}</p>
+                        </div>
+                        <button
+                          onClick={() => handleAdminDeletePromo(promo.code)}
+                          className="px-3 py-1.5 text-[10px] font-bold text-red-500 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                        >
+                          ลบคูปอง
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Registered Stores list */}
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
+                <h3 className="text-base font-extrabold text-slate-800 border-b border-slate-100 pb-3 flex justify-between items-center">
+                  <span>🏬 ร้านค้าในระบบทั้งหมด (ข้อมูลผู้ขาย)</span>
+                  <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                    {merchants.length} ร้าน
+                  </span>
+                </h3>
+
+                {merchants.length === 0 ? (
+                  <p className="text-xs text-slate-400 py-8 text-center">ยังไม่มีร้านค้าระบบพาร์ทเนอร์ในขณะนี้</p>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {merchants.map((shop) => (
+                      <div key={shop.id} className="py-3.5 flex justify-between items-center text-xs">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-slate-700 text-sm">{shop.shop_name}</span>
+                            <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
+                              shop.merchant_type === 'restaurant' 
+                                ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' 
+                                : 'bg-amber-50 text-amber-600 border border-amber-100'
+                            }`}>
+                              {shop.merchant_type === 'restaurant' ? 'ร้านอาหาร' : 'มินิมาร์ท'}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400">
+                            อีเมลล็อกอิน: <b>{shop.email}</b> • โทร: <b>{shop.phone}</b> • ผู้ดูแล: <b>คุณ {shop.name}</b>
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            </div>
+
           </div>
         )}
 

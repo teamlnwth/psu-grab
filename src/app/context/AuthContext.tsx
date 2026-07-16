@@ -9,7 +9,7 @@ export interface User {
   email: string;
   phone: string;
   studentId?: string;
-  role: 'customer' | 'rider' | 'merchant';
+  role: 'customer' | 'rider' | 'merchant' | 'admin';
   shopName?: string;
   merchantType?: 'restaurant' | 'minimart';
 }
@@ -47,6 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             phone: '0812345678',
             student_id: '6410110001',
             role: 'customer',
+            shop_name: null,
+            merchant_type: null,
             password: 'password123'
           },
           {
@@ -56,6 +58,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             phone: '0898765432',
             student_id: '6410110002',
             role: 'rider',
+            shop_name: null,
+            merchant_type: null,
             password: 'password123'
           },
           {
@@ -63,6 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name: 'ป้าศรี หมีข้าวยำ',
             email: 'krua_psu@gmail.com',
             phone: '0855555555',
+            student_id: null,
             role: 'merchant',
             shop_name: 'ครัว ม.อ. (Krua PSU)',
             merchant_type: 'restaurant',
@@ -73,9 +78,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name: 'เจ๊กิม ขายของชำ',
             email: 'psu_mart@gmail.com',
             phone: '0866666666',
+            student_id: null,
             role: 'merchant',
             shop_name: 'ม.อ. มาร์ท (PSU Mart)',
             merchant_type: 'minimart',
+            password: 'password123'
+          },
+          {
+            id: '5',
+            name: 'ผู้ดูแลระบบ PSU Grab',
+            email: 'admin@gmail.com',
+            phone: '0800000000',
+            student_id: null,
+            role: 'admin',
+            shop_name: null,
+            merchant_type: null,
             password: 'password123'
           }
         ];
@@ -95,6 +112,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             { id: 'p3-4', merchant_id: '4', name: 'ขนมขบเคี้ยวตราก๊อบกอบ', price: 20, category: 'ของกินเล่น' }
           ];
           await supabase.from('products').upsert(initialProducts, { onConflict: 'id' });
+        }
+
+        // Seed default promo codes if promo codes table is empty
+        const { data: existingPromos } = await supabase.from('promo_codes').select('code').limit(1);
+        if (!existingPromos || existingPromos.length === 0) {
+          const initialPromos = [
+            { code: 'PSUNEW50', discount_amount: 50, description: 'ส่วนลด 50 บาท ต้อนรับนักศึกษาใหม่ ม.อ.' },
+            { code: 'FREE15', discount_amount: 15, description: 'คูปองส่งฟรี ส่วนลด 15 บาทสำหรับจัดส่ง' },
+            { code: 'PSUGRAB10', discount_amount: 10, description: 'โค้ดส่วนลดทั่วไป 10 บาท ไม่มีขั้นต่ำ' }
+          ];
+          await supabase.from('promo_codes').upsert(initialPromos, { onConflict: 'code' });
         }
       } catch (err) {
         console.warn(

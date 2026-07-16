@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     email TEXT UNIQUE NOT NULL,
     phone TEXT NOT NULL,
     student_id TEXT,
-    role TEXT NOT NULL CHECK (role IN ('customer', 'rider', 'merchant')),
+    role TEXT NOT NULL CHECK (role IN ('customer', 'rider', 'merchant', 'admin')),
     shop_name TEXT,
     merchant_type TEXT CHECK (merchant_type IN ('restaurant', 'minimart')),
     password TEXT NOT NULL,
@@ -38,7 +38,22 @@ CREATE TABLE IF NOT EXISTS public.orders (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. Enable Realtime updates
+-- 4. Create Promo Codes Table
+CREATE TABLE IF NOT EXISTS public.promo_codes (
+    code TEXT PRIMARY KEY,
+    discount_amount DOUBLE PRECISION NOT NULL,
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5. Enable Realtime updates
 ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.promo_codes;
+
+-- 6. Disable Row Level Security (RLS) for Development/Testing
+ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.promo_codes DISABLE ROW LEVEL SECURITY;

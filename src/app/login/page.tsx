@@ -155,6 +155,7 @@ export default function LoginPage() {
         <div className="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-100 text-left text-xs">
           <h4 className="font-bold text-slate-700 mb-1">💡 บัญชีจำลองสำหรับทดสอบ:</h4>
           <div className="text-[10px] text-slate-500 space-y-1">
+            <p>• <b>แอดมิน:</b> admin@gmail.com (รหัส: password123)</p>
             <p>• <b>ลูกค้า:</b> somchai@gmail.com (รหัส: password123)</p>
             <p>• <b>ไรเดอร์:</b> somying@gmail.com (รหัส: password123)</p>
             <p>• <b>ร้านอาหาร:</b> krua_psu@gmail.com (รหัส: password123)</p>
