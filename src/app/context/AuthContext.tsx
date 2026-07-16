@@ -71,7 +71,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: 'merchant',
             shop_name: 'ครัว ม.อ. (Krua PSU)',
             merchant_type: 'restaurant',
-            password: 'password123'
+            password: 'password123',
+            is_partner: true
           },
           {
             id: '4',
@@ -82,7 +83,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: 'merchant',
             shop_name: 'ม.อ. มาร์ท (PSU Mart)',
             merchant_type: 'minimart',
-            password: 'password123'
+            password: 'password123',
+            is_partner: true
           },
           {
             id: '5',

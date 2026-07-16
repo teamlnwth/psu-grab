@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     shop_name TEXT,
     merchant_type TEXT CHECK (merchant_type IN ('restaurant', 'minimart')),
     password TEXT NOT NULL,
+    is_partner BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

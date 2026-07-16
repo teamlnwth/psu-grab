@@ -405,7 +405,8 @@ export default function Home() {
           role: 'merchant',
           shop_name: newMerchantShopName.trim(),
           merchant_type: newMerchantType,
-          password: newMerchantPassword
+          password: newMerchantPassword,
+          is_partner: true
         }]);
 
       if (error) throw error;
@@ -471,6 +472,24 @@ export default function Home() {
       setTimeout(() => setMessage(null), 3000);
     } catch (err: any) {
       alert(`ลบโค้ดล้มเหลว: ${err.message}`);
+    }
+  };
+
+  const handleAdminTogglePartner = async (merchantId: string, currentStatus: boolean) => {
+    try {
+      const newStatus = !currentStatus;
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_partner: newStatus })
+        .eq('id', merchantId);
+
+      if (error) throw error;
+
+      setMessage(`อัปเดตสถานะร้านค้าพาร์ทเนอร์สำเร็จ!`);
+      fetchMerchants();
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      alert(`อัปเดตสถานะร้านค้าล้มเหลว: ${err.message}`);
     }
   };
 
@@ -839,13 +858,13 @@ export default function Home() {
                 {!selectedMerchant ? (
                   <div className="space-y-4">
                     <h3 className="text-base font-extrabold text-slate-800">🏪 เลือกร้านค้าจำลองในวิทยาเขต (ดึงข้อมูลตรงจาก Supabase)</h3>
-                    {merchants.length === 0 ? (
+                    {merchants.filter(m => m.is_partner).length === 0 ? (
                       <div className="bg-white rounded-3xl p-8 border border-slate-100 text-center text-xs text-slate-400">
                         ไม่พบร้านค้าพาร์ทเนอร์ลงทะเบียนในระบบ Supabase (กรุณาลองลงทะเบียนร้านค้าใหม่ หรือรัน schema.sql)
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {merchants.map((merchant) => (
+                        {merchants.filter(m => m.is_partner).map((merchant) => (
                           <div 
                             key={merchant.id} 
                             onClick={() => {
@@ -1646,9 +1665,9 @@ export default function Home() {
 
               {/* Registered Stores list */}
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
-                <h3 className="text-base font-extrabold text-slate-800 border-b border-slate-100 pb-3 flex justify-between items-center">
+                <h3 className="text-base font-extrabold text-slate-805 border-b border-slate-100 pb-3 flex justify-between items-center">
                   <span>🏬 ร้านค้าในระบบทั้งหมด (ข้อมูลผู้ขาย)</span>
-                  <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-bold text-indigo-650 bg-indigo-50 px-2 py-0.5 rounded-full">
                     {merchants.length} ร้าน
                   </span>
                 </h3>
@@ -1658,22 +1677,39 @@ export default function Home() {
                 ) : (
                   <div className="divide-y divide-slate-100">
                     {merchants.map((shop) => (
-                      <div key={shop.id} className="py-3.5 flex justify-between items-center text-xs">
+                      <div key={shop.id} className="py-3.5 flex justify-between items-center text-xs text-left">
                         <div className="space-y-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span className="font-extrabold text-slate-700 text-sm">{shop.shop_name}</span>
                             <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
                               shop.merchant_type === 'restaurant' 
-                                ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' 
-                                : 'bg-amber-50 text-amber-600 border border-amber-100'
+                                ? 'bg-indigo-50 text-indigo-655 border border-indigo-150' 
+                                : 'bg-amber-50 text-amber-700 border border-amber-200'
                             }`}>
                               {shop.merchant_type === 'restaurant' ? 'ร้านอาหาร' : 'มินิมาร์ท'}
+                            </span>
+                            <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase border ${
+                              shop.is_partner
+                                ? 'bg-primary-light text-primary border-primary/20'
+                                : 'bg-rose-50 text-rose-600 border-rose-200'
+                            }`}>
+                              {shop.is_partner ? '✓ พาร์ทเนอร์' : 'ยังไม่ระบุพาร์ทเนอร์'}
                             </span>
                           </div>
                           <p className="text-[10px] text-slate-400">
                             อีเมลล็อกอิน: <b>{shop.email}</b> • โทร: <b>{shop.phone}</b> • ผู้ดูแล: <b>คุณ {shop.name}</b>
                           </p>
                         </div>
+                        <button
+                          onClick={() => handleAdminTogglePartner(shop.id, !!shop.is_partner)}
+                          className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition duration-200 cursor-pointer border ${
+                            shop.is_partner
+                              ? 'bg-rose-50 hover:bg-rose-100 text-rose-600 border-rose-200'
+                              : 'bg-primary-light hover:bg-primary-light/80 text-primary border-primary/20'
+                          }`}
+                        >
+                          {shop.is_partner ? 'ยกเลิกพาร์ทเนอร์' : 'ตั้งเป็นพาร์ทเนอร์'}
+                        </button>
                       </div>
                     ))}
                   </div>
