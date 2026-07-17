@@ -27,6 +27,7 @@ export default function Home() {
   const [activePromo, setActivePromo] = useState<any | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
+  const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
 
   // Carousel states for recommended shops
   const [carouselIndex, setCarouselIndex] = useState(0);
@@ -196,9 +197,9 @@ export default function Home() {
       setSelectedMerchant(null);
       setActivePromo(null);
       setPromoCodeInput('');
-      setMessage(`สั่งเรียบร้อย! ออเดอร์ส่งไปร้านแล้ว 🍔`);
+      setShowSuccessOverlay(true);
       fetchCustomerOrders();
-      setTimeout(() => setMessage(null), 3000);
+      setTimeout(() => setShowSuccessOverlay(false), 4000);
     } catch (err: any) {
       alert(`สั่งไม่ได้: ${err.message}`);
     }
@@ -2047,6 +2048,64 @@ export default function Home() {
               >
                 ตกลงเลือกใช้นี้
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Animation Overlay */}
+      {showSuccessOverlay && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="max-w-md w-full bg-white rounded-[32px] p-8 text-center relative overflow-hidden shadow-2xl animate-pop-in border border-slate-100/50">
+            {/* Confetti Container */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              {Array.from({ length: 45 }).map((_, i) => {
+                const colors = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#EC4899', '#8B5CF6'];
+                const randomLeft = Math.random() * 100;
+                const randomDelay = Math.random() * 1.5;
+                const randomSize = Math.random() * 8 + 6;
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                return (
+                  <div
+                    key={i}
+                    className="absolute rounded-full animate-confetti-fall"
+                    style={{
+                      left: `${randomLeft}%`,
+                      top: `-20px`,
+                      width: `${randomSize}px`,
+                      height: `${randomSize}px`,
+                      backgroundColor: randomColor,
+                      animationDelay: `${randomDelay}s`,
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Checkmark Graphic */}
+            <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-100 shadow-md ring-8 ring-emerald-50/50 animate-pulse">
+              <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+
+            <h3 className="text-xl font-black text-slate-850 mb-2">สั่งซื้ออาหารสำเร็จ! 🎉</h3>
+            <p className="text-xs text-slate-500 font-semibold leading-relaxed mb-6">
+              ระบบได้รับคำสั่งซื้อของคุณแล้ว<br />
+              ร้านค้านำส่งอัปเดต และไรเดอร์เตรียมเดินทาง 🛵
+            </p>
+
+            {/* Riding scooter track */}
+            <div className="h-10 bg-slate-50 rounded-2xl relative overflow-hidden flex items-center border border-slate-200/50 shadow-inner px-4 mt-4">
+              <span className="absolute left-3 text-[9px] font-bold text-slate-400">ร้านค้า</span>
+              <span className="absolute right-3 text-[9px] font-bold text-slate-400">ลูกค้า</span>
+              
+              <div className="absolute top-1/2 -translate-y-1/2 left-0 w-[40px] text-xl animate-scooter-ride z-10">
+                🛵💨
+              </div>
+              
+              {/* Dotted travel line */}
+              <div className="w-full border-t-2 border-dashed border-slate-200 mt-0.5"></div>
             </div>
           </div>
         </div>
