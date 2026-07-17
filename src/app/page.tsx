@@ -995,7 +995,7 @@ export default function Home() {
                     {/* 2. All Campus Shops Section */}
                     <div className="space-y-4">
                       <h3 className="text-base font-extrabold text-slate-800 flex items-center gap-2">
-                        <span>🏪</span> ร้านค้าทั้งหมดในวิทยาเขต (All Campus Shops)
+                        <span>🏪</span> ร้านค้าทั้งหมดในมหาลัย (All Campus Shops)
                       </h3>
                       {merchants.length === 0 ? (
                         <div className="bg-white rounded-3xl p-8 border border-slate-100 text-center text-xs text-slate-400">
