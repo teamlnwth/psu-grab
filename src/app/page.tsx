@@ -10,7 +10,7 @@ const MART_EMOJIS = ['🥤', '🥛', '🍪', '🍫', '🍜', '🧴', '🧼', '�
 
 export default function Home() {
   const { user, loading, logout } = useAuth();
-  
+
   // Custom states for interactive features
   const [activeCategory, setActiveCategory] = useState<'all' | 'food'>('all');
   const [message, setMessage] = useState<string | null>(null);
@@ -232,7 +232,7 @@ export default function Home() {
         .order('created_at', { ascending: false });
       if (error) throw error;
       setMerchantOrders(data || []);
-      
+
       // Calculate revenue
       const totalRev = (data || [])
         .filter((o: any) => o.status === 'completed')
@@ -576,7 +576,7 @@ export default function Home() {
       .channel('orders-realtime-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
         if (!user) return;
-        
+
         // Refresh states depending on user role
         if (user.role === 'customer') {
           fetchCustomerOrders();
@@ -645,22 +645,21 @@ export default function Home() {
               <div className="flex items-center gap-4">
                 <div className="flex flex-col items-end">
                   <span className="text-sm font-black text-slate-850">{user.name}</span>
-                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide ${
-                    user.role === 'customer' 
-                      ? 'bg-primary-light text-primary border border-primary-light/40' 
-                      : user.role === 'rider'
+                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide ${user.role === 'customer'
+                    ? 'bg-primary-light text-primary border border-primary-light/40'
+                    : user.role === 'rider'
                       ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
                       : user.role === 'admin'
-                      ? 'bg-purple-50 text-purple-600 border border-purple-100'
-                      : 'bg-indigo-50 text-indigo-600 border border-indigo-100'
-                  }`}>
-                    {user.role === 'customer' 
-                      ? 'ลูกค้า' 
-                      : user.role === 'rider' 
-                      ? 'คนขับ / ไรเดอร์' 
-                      : user.role === 'admin'
-                      ? 'ผู้ดูแลระบบหลัก'
-                      : `ร้าน: ${user.shopName} (${user.merchantType === 'restaurant' ? 'อาหาร' : 'มาร์ท'})`}
+                        ? 'bg-purple-50 text-purple-600 border border-purple-100'
+                        : 'bg-indigo-50 text-indigo-600 border border-indigo-100'
+                    }`}>
+                    {user.role === 'customer'
+                      ? 'ลูกค้า'
+                      : user.role === 'rider'
+                        ? 'คนขับ / ไรเดอร์'
+                        : user.role === 'admin'
+                          ? 'ผู้ดูแลระบบหลัก'
+                          : `ร้าน: ${user.shopName} (${user.merchantType === 'restaurant' ? 'อาหาร' : 'มาร์ท'})`}
                   </span>
                 </div>
                 <button
@@ -738,7 +737,7 @@ export default function Home() {
                   เดินทางก็สบายกับ <span className="underline decoration-wavy decoration-yellow-400">PSU Grab</span>
                 </h1>
                 <p className="text-emerald-50 text-sm md:text-base font-medium leading-relaxed">
-                  ลูกค้าสั่ง ➔ ร้านค้ารับออเดอร์ ➔ ไรเดอร์ส่งถึงที่ ทุกอย่างอัปเดตสดผ่าน Supabase
+                  ลูกค้าสั่ง ➔ ร้านค้ารับออเดอร์ ➔ ไรเดอร์ส่งถึงที่
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start pt-2">
                   <Link
@@ -823,7 +822,7 @@ export default function Home() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {adminPromoCodes.map(promo => (
-                    <div 
+                    <div
                       key={promo.code}
                       onClick={() => {
                         setPromoCodeInput(promo.code);
@@ -860,11 +859,10 @@ export default function Home() {
 
                       {/* Apply button / Checkbox */}
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 shrink-0">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                          activePromo?.code === promo.code
-                            ? 'border-blue-600 bg-primary text-white'
-                            : 'border-slate-300 group-hover:border-blue-400 bg-white'
-                        }`}>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${activePromo?.code === promo.code
+                          ? 'border-blue-600 bg-primary text-white'
+                          : 'border-slate-300 group-hover:border-blue-400 bg-white'
+                          }`}>
                           {activePromo?.code === promo.code && (
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -880,10 +878,10 @@ export default function Home() {
 
             {/* Shopping & Ordering Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              
+
               {/* Left Column: Stores & Cart */}
               <div className="lg:col-span-8 space-y-6">
-                
+
                 {/* 1. Shop list or Selected Shop Products */}
                 {!selectedMerchant ? (
                   <div className="space-y-8 animate-fade-in">
@@ -891,9 +889,9 @@ export default function Home() {
                     {recommended.length > 0 && (
                       <div className="space-y-4">
                         <h3 className="text-base font-black text-slate-800 flex items-center gap-2">
-                          <span>⭐</span> ร้านแนะนำโดยแอดมิน (Recommended Shops)
+                          <span>⭐</span> ร้านเด็ดต้องลอง (Recommended Shops)
                         </h3>
-                        
+
                         <div className="relative group/carousel">
                           {/* Left Navigation Arrow */}
                           {recommended.length > (isMobile ? 1 : 2) && (
@@ -909,18 +907,18 @@ export default function Home() {
 
                           {/* Viewport */}
                           <div className="overflow-hidden -mx-2 p-1">
-                            <div 
+                            <div
                               className="flex transition-transform duration-500 ease-in-out"
-                              style={{ 
-                                transform: `translateX(-${carouselIndex * (isMobile ? 100 : 50)}%)` 
+                              style={{
+                                transform: `translateX(-${carouselIndex * (isMobile ? 100 : 50)}%)`
                               }}
                             >
                               {recommended.map((merchant) => (
-                                <div 
+                                <div
                                   key={merchant.id}
                                   className="w-full md:w-1/2 shrink-0 px-2"
                                 >
-                                  <div 
+                                  <div
                                     onClick={() => {
                                       setSelectedMerchant(merchant);
                                       fetchSelectedMerchantProducts(merchant.id);
@@ -929,7 +927,7 @@ export default function Home() {
                                   >
                                     {/* Decorative gold background gradient flare */}
                                     <div className="absolute right-0 top-0 w-24 h-24 bg-amber-100/30 rounded-full blur-xl pointer-events-none -mr-8 -mt-8 transition-all group-hover:scale-125"></div>
-                                    
+
                                     <div className="flex items-center gap-4 relative z-10">
                                       <span className="w-14 h-14 rounded-2xl bg-amber-100/50 group-hover:bg-amber-200/60 text-3xl flex items-center justify-center transition duration-300 ring-4 ring-amber-50">
                                         {merchant.merchant_type === 'restaurant' ? '🍔' : '🛒'}
@@ -984,9 +982,8 @@ export default function Home() {
                                 type="button"
                                 key={idx}
                                 onClick={() => setCarouselIndex(idx)}
-                                className={`w-2 h-2 rounded-full transition-all duration-300 cursor-pointer ${
-                                  carouselIndex === idx ? 'bg-amber-500 w-4' : 'bg-slate-200'
-                                }`}
+                                className={`w-2 h-2 rounded-full transition-all duration-300 cursor-pointer ${carouselIndex === idx ? 'bg-amber-500 w-4' : 'bg-slate-200'
+                                  }`}
                                 title={`หน้า ${idx + 1}`}
                               />
                             ))}
@@ -1009,20 +1006,18 @@ export default function Home() {
                           {merchants.map((merchant) => {
                             const isRecommended = merchant.is_partner === true;
                             return (
-                              <div 
-                                key={merchant.id} 
+                              <div
+                                key={merchant.id}
                                 onClick={() => {
                                   setSelectedMerchant(merchant);
                                   fetchSelectedMerchantProducts(merchant.id);
                                 }}
-                                className={`bg-white rounded-3xl p-6 border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-between cursor-pointer group ${
-                                  isRecommended ? 'border-amber-100 hover:border-amber-250 bg-amber-50/5' : 'border-slate-100/80 hover:border-slate-200'
-                                }`}
+                                className={`bg-white rounded-3xl p-6 border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-between cursor-pointer group ${isRecommended ? 'border-amber-100 hover:border-amber-250 bg-amber-50/5' : 'border-slate-100/80 hover:border-slate-200'
+                                  }`}
                               >
                                 <div className="flex items-center gap-4">
-                                  <span className={`w-14 h-14 rounded-2xl text-3xl flex items-center justify-center transition duration-300 ${
-                                    isRecommended ? 'bg-amber-100/40 group-hover:bg-amber-100/70' : 'bg-primary-light/50 group-hover:bg-primary-light'
-                                  }`}>
+                                  <span className={`w-14 h-14 rounded-2xl text-3xl flex items-center justify-center transition duration-300 ${isRecommended ? 'bg-amber-100/40 group-hover:bg-amber-100/70' : 'bg-primary-light/50 group-hover:bg-primary-light'
+                                    }`}>
                                     {merchant.merchant_type === 'restaurant' ? '🍔' : '🛒'}
                                   </span>
                                   <div className="space-y-1">
@@ -1100,7 +1095,7 @@ export default function Home() {
 
               {/* Right Column: Checkout Cart & Active Orders Feed */}
               <div className="lg:col-span-4 space-y-6">
-                
+
                 {/* Checkout Cart Container */}
                 {cart.length > 0 && (
                   <div id="checkout-cart" className="bg-white rounded-3xl p-6 border border-slate-100 shadow-md space-y-4 animate-slide-up scroll-mt-20">
@@ -1211,17 +1206,16 @@ export default function Home() {
                         <div key={order.id} className="py-4 space-y-1.5 text-xs">
                           <div className="flex justify-between items-center">
                             <span className="font-bold text-slate-700">{order.merchant_name}</span>
-                            <span className={`text-[10px] px-2 py-0.5 rounded font-extrabold uppercase ${
-                              order.status === 'pending'
-                                ? 'bg-amber-50 text-amber-600 border border-amber-100'
-                                : order.status === 'preparing'
+                            <span className={`text-[10px] px-2 py-0.5 rounded font-extrabold uppercase ${order.status === 'pending'
+                              ? 'bg-amber-50 text-amber-600 border border-amber-100'
+                              : order.status === 'preparing'
                                 ? 'bg-indigo-50 text-indigo-600 border border-indigo-100'
                                 : order.status === 'calling_rider'
-                                ? 'bg-purple-50 text-purple-600 border border-purple-100'
-                                : order.status === 'delivering'
-                                ? 'bg-primary-light text-primary border border-primary-light/40 animate-pulse'
-                                : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                            }`}>
+                                  ? 'bg-purple-50 text-purple-600 border border-purple-100'
+                                  : order.status === 'delivering'
+                                    ? 'bg-primary-light text-primary border border-primary-light/40 animate-pulse'
+                                    : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                              }`}>
                               {order.status === 'pending' && 'รอรับออเดอร์'}
                               {order.status === 'preparing' && 'กำลังจัดปรุง'}
                               {order.status === 'calling_rider' && 'กำลังเรียกคนขับ'}
@@ -1284,7 +1278,7 @@ export default function Home() {
                     ไรเดอร์
                   </p>
                 </div>
-                
+
                 <div className="bg-[#F7F9FA] border border-slate-100 rounded-2xl p-5 text-left space-y-1">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">กระเป๋าเงิน</span>
                   <div className="flex justify-between items-baseline">
@@ -1318,7 +1312,7 @@ export default function Home() {
 
             {/* Right Feed (Available Jobs & active jobs) */}
             <div className="lg:col-span-8 space-y-6">
-              
+
               {/* Rider Active Jobs */}
               {riderHistory.some(o => o.status === 'delivering') && (
                 <div className="bg-white rounded-3xl p-6 border-2 border-blue-500 shadow-md space-y-4 animate-slide-up">
@@ -1378,8 +1372,8 @@ export default function Home() {
                 ) : (
                   <div className="space-y-3">
                     {riderJobs.map((job) => (
-                      <div 
-                        key={job.id} 
+                      <div
+                        key={job.id}
                         className="p-5 border border-slate-100 bg-[#F7F9FA]/50 hover:bg-[#F7F9FA] rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition duration-300"
                       >
                         <div className="space-y-1.5 text-xs">
@@ -1483,11 +1477,10 @@ export default function Home() {
                           key={emoji}
                           type="button"
                           onClick={() => setSelectedEmoji(emoji)}
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition hover:scale-110 cursor-pointer ${
-                            selectedEmoji === emoji 
-                              ? 'bg-indigo-600 shadow text-white font-bold scale-105' 
-                              : 'bg-white hover:bg-slate-50 text-slate-600'
-                          }`}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition hover:scale-110 cursor-pointer ${selectedEmoji === emoji
+                            ? 'bg-indigo-600 shadow text-white font-bold scale-105'
+                            : 'bg-white hover:bg-slate-50 text-slate-600'
+                            }`}
                         >
                           {emoji}
                         </button>
@@ -1530,7 +1523,7 @@ export default function Home() {
 
             {/* Right Column: Menu List & Simulated Orders Feed */}
             <div className="lg:col-span-8 space-y-6">
-              
+
               {/* Product List Manager */}
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
                 <h3 className="text-base font-extrabold text-slate-800 border-b border-slate-100 pb-3 flex justify-between items-center">
@@ -1547,8 +1540,8 @@ export default function Home() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {merchantProducts.map((prod) => (
-                      <div 
-                        key={prod.id} 
+                      <div
+                        key={prod.id}
                         className="p-4 border border-slate-100 bg-[#F7F9FA]/30 rounded-2xl flex justify-between items-center hover:bg-[#F7F9FA] transition duration-300"
                       >
                         <div className="space-y-0.5">
@@ -1579,13 +1572,12 @@ export default function Home() {
                     <p className="text-xs text-slate-400 py-8 text-center">ยังไม่มีลูกค้ายื่นคำสั่งซื้อเข้ามาในขณะนี้</p>
                   ) : (
                     merchantOrders.map((ord) => (
-                      <div 
-                        key={ord.id} 
-                        className={`p-5 border rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition duration-300 ${
-                          ord.status === 'completed' 
-                            ? 'border-slate-100 bg-[#F7F9FA]/20 opacity-70' 
-                            : 'border-indigo-100 bg-indigo-50/10'
-                        }`}
+                      <div
+                        key={ord.id}
+                        className={`p-5 border rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition duration-300 ${ord.status === 'completed'
+                          ? 'border-slate-100 bg-[#F7F9FA]/20 opacity-70'
+                          : 'border-indigo-100 bg-indigo-50/10'
+                          }`}
                       >
                         <div className="space-y-1.5 text-xs">
                           <div className="flex items-center gap-2">
@@ -1649,10 +1641,10 @@ export default function Home() {
         {/* CASE 5: ADMIN DASHBOARD */}
         {user && user.role === 'admin' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 py-2 animate-fade-in">
-            
+
             {/* Left Column: Admin Profile & Add Merchant Partner */}
             <div className="lg:col-span-5 space-y-6">
-              
+
               {/* Admin Profile Card */}
               <div className="bg-gradient-to-br from-indigo-700 to-blue-800 rounded-3xl p-6 text-white shadow-md text-center space-y-4">
                 <div className="w-16 h-16 bg-white/10 text-white rounded-full flex items-center justify-center mx-auto text-3xl font-bold border border-white/20">
@@ -1754,7 +1746,7 @@ export default function Home() {
 
             {/* Right Column: Manage Promo Codes & Existing Merchants List */}
             <div className="lg:col-span-7 space-y-6">
-              
+
               {/* Create Promo Code form */}
               <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
                 <h4 className="text-sm font-extrabold text-slate-800 pb-2 border-b border-slate-100 flex items-center gap-1.5">
@@ -1859,18 +1851,16 @@ export default function Home() {
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="font-extrabold text-slate-700 text-sm">{shop.shop_name}</span>
-                            <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
-                              shop.merchant_type === 'restaurant' 
-                                ? 'bg-indigo-50 text-indigo-655 border border-indigo-150' 
-                                : 'bg-amber-50 text-amber-700 border border-amber-200'
-                            }`}>
+                            <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase tracking-wider ${shop.merchant_type === 'restaurant'
+                              ? 'bg-indigo-50 text-indigo-655 border border-indigo-150'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                              }`}>
                               {shop.merchant_type === 'restaurant' ? 'ร้านอาหาร' : 'มินิมาร์ท'}
                             </span>
-                            <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase border ${
-                              shop.is_partner
-                                ? 'bg-primary-light text-primary border-primary/20'
-                                : 'bg-rose-50 text-rose-600 border-rose-200'
-                            }`}>
+                            <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase border ${shop.is_partner
+                              ? 'bg-primary-light text-primary border-primary/20'
+                              : 'bg-rose-50 text-rose-600 border-rose-200'
+                              }`}>
                               {shop.is_partner ? '✓ พาร์ทเนอร์' : 'ยังไม่ระบุพาร์ทเนอร์'}
                             </span>
                           </div>
@@ -1880,11 +1870,10 @@ export default function Home() {
                         </div>
                         <button
                           onClick={() => handleAdminTogglePartner(shop.id, !!shop.is_partner)}
-                          className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition duration-200 cursor-pointer border ${
-                            shop.is_partner
-                              ? 'bg-rose-50 hover:bg-rose-100 text-rose-600 border-rose-200'
-                              : 'bg-primary-light hover:bg-primary-light/80 text-primary border-primary/20'
-                          }`}
+                          className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition duration-200 cursor-pointer border ${shop.is_partner
+                            ? 'bg-rose-50 hover:bg-rose-100 text-rose-600 border-rose-200'
+                            : 'bg-primary-light hover:bg-primary-light/80 text-primary border-primary/20'
+                            }`}
                         >
                           {shop.is_partner ? 'ยกเลิกพาร์ทเนอร์' : 'ตั้งเป็นพาร์ทเนอร์'}
                         </button>
@@ -1905,14 +1894,14 @@ export default function Home() {
       {isPromoModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="max-w-md w-full bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-slate-100 animate-slide-up">
-            
+
             {/* Modal Header */}
             <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-[#F7F9FA]/50">
               <div className="space-y-0.5 text-left">
                 <h3 className="text-sm font-black text-slate-800">เลือกคูปองส่วนลด</h3>
                 <p className="text-[10px] text-slate-400 font-bold">Offers & Promos</p>
               </div>
-              <button 
+              <button
                 onClick={() => setIsPromoModalOpen(false)}
                 className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 hover:text-slate-800 flex items-center justify-center text-xs font-bold transition cursor-pointer"
               >
@@ -1922,7 +1911,7 @@ export default function Home() {
 
             {/* Modal Body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-5">
-              
+
               {/* Promo input row */}
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left">
@@ -1966,7 +1955,7 @@ export default function Home() {
                     คูปองส่วนลดที่ใช้ได้สำหรับคุณ
                   </span>
                   {activePromo && (
-                    <button 
+                    <button
                       onClick={() => {
                         setActivePromo(null);
                         setPromoCodeInput('');
@@ -1985,7 +1974,7 @@ export default function Home() {
                 ) : (
                   <div className="space-y-3">
                     {adminPromoCodes.map(promo => (
-                      <div 
+                      <div
                         key={promo.code}
                         onClick={() => {
                           setPromoCodeInput(promo.code);
@@ -2020,11 +2009,10 @@ export default function Home() {
 
                         {/* Apply Radio Checkbox */}
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 shrink-0">
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                            activePromo?.code === promo.code
-                              ? 'border-blue-600 bg-primary text-white'
-                              : 'border-slate-300 group-hover:border-blue-400 bg-white'
-                          }`}>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${activePromo?.code === promo.code
+                            ? 'border-blue-600 bg-primary text-white'
+                            : 'border-slate-300 group-hover:border-blue-400 bg-white'
+                            }`}>
                             {activePromo?.code === promo.code && (
                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -2099,11 +2087,11 @@ export default function Home() {
             <div className="h-10 bg-slate-50 rounded-2xl relative overflow-hidden flex items-center border border-slate-200/50 shadow-inner px-4 mt-4">
               <span className="absolute left-3 text-[9px] font-bold text-slate-400">ร้านค้า</span>
               <span className="absolute right-3 text-[9px] font-bold text-slate-400">ลูกค้า</span>
-              
+
               <div className="absolute top-1/2 -translate-y-1/2 left-0 w-[40px] text-xl animate-scooter-ride z-10">
                 🛵💨
               </div>
-              
+
               {/* Dotted travel line */}
               <div className="w-full border-t-2 border-dashed border-slate-200 mt-0.5"></div>
             </div>
