@@ -8,6 +8,18 @@ import { supabase, isSupabaseConfigured } from './supabase';
 const REST_EMOJIS = ['🍔', '🍕', '🍜', '🍛', '🍱', '🥗', '🥤', '🍵', '🍰', '🍨', '🍳', '🍗'];
 const MART_EMOJIS = ['🥤', '🥛', '🍪', '🍫', '🍜', '🧴', '🧼', '🧻', '🔋', '🩹', '🧺', '🍎'];
 
+const CAMPUS_HOTSPOTS = [
+  { name: 'หอพักนักศึกษา 11 (ชาย)', x: 30, y: 75, emoji: '🏢', color: 'bg-emerald-500' },
+  { name: 'หอพักนักศึกษา 10 (หญิง)', x: 45, y: 75, emoji: '🏢', color: 'bg-emerald-500' },
+  { name: 'คณะวิศวกรรมศาสตร์', x: 22, y: 52, emoji: '⚙️', color: 'bg-red-500' },
+  { name: 'คณะวิทยาศาสตร์ (ตึกฟักทอง)', x: 32, y: 35, emoji: '🎃', color: 'bg-amber-500' },
+  { name: 'ศูนย์ทรัพยากรการเรียนรู้ LRC', x: 62, y: 55, emoji: '📚', color: 'bg-blue-500' },
+  { name: 'อ่างเก็บน้ำศรีตรัง', x: 82, y: 80, emoji: '🏞️', color: 'bg-sky-450' },
+  { name: 'โรงพยาบาลสงขลานครินทร์ (ม.อ.)', x: 55, y: 18, emoji: '🏥', color: 'bg-rose-500' },
+  { name: 'โรงอาหารโรงช้าง', x: 74, y: 62, emoji: '🍽️', color: 'bg-orange-500' },
+  { name: 'ตึกอธิการบดี (ม.อ.)', x: 65, y: 35, emoji: '🏛️', color: 'bg-indigo-500' },
+];
+
 export default function Home() {
   const { user, loading, logout } = useAuth();
 
@@ -28,6 +40,22 @@ export default function Home() {
   const [promoError, setPromoError] = useState<string | null>(null);
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
+  const [isTrackerCollapsed, setIsTrackerCollapsed] = useState(false);
+  // Map pinning states
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [selectedPinCoords, setSelectedPinCoords] = useState<{ x: number; y: number } | null>(null);
+  const [selectedBuilding, setSelectedBuilding] = useState<string | null>(null);
+  const [riderProgress, setRiderProgress] = useState(0.1);
+  // Rating & Review states
+  const [merchantRatings, setMerchantRatings] = useState<Record<string, { avg: number; count: number }>>({});
+  const [selectedMerchantReviews, setSelectedMerchantReviews] = useState<any[]>([]);
+  const [merchantReviewsTab, setMerchantReviewsTab] = useState<'menu' | 'reviews'>('menu');
+  const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
+  const [shopRatingInput, setShopRatingInput] = useState<number>(5);
+  const [shopReviewInput, setShopReviewInput] = useState('');
+  const [riderRatingInput, setRiderRatingInput] = useState<number>(5);
+  const [riderReviewInput, setRiderReviewInput] = useState('');
+  const [riderRating, setRiderRating] = useState<{ avg: number; count: number }>({ avg: 5.0, count: 0 });
 
   // Carousel states for recommended shops
   const [carouselIndex, setCarouselIndex] = useState(0);
@@ -146,6 +174,75 @@ export default function Home() {
     }
   };
 
+  const fetchMerchantAverages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('merchant_id, shop_rating')
+        .not('shop_rating', 'is', null);
+      if (error) throw error;
+
+      const ratingsMap: Record<string, { sum: number; count: number }> = {};
+      data?.forEach((o: any) => {
+        if (!ratingsMap[o.merchant_id]) {
+          ratingsMap[o.merchant_id] = { sum: 0, count: 0 };
+        }
+        ratingsMap[o.merchant_id].sum += o.shop_rating;
+        ratingsMap[o.merchant_id].count += 1;
+      });
+
+      const averages: Record<string, { avg: number; count: number }> = {};
+      Object.keys(ratingsMap).forEach(mid => {
+        averages[mid] = {
+          avg: parseFloat((ratingsMap[mid].sum / ratingsMap[mid].count).toFixed(1)),
+          count: ratingsMap[mid].count
+        };
+      });
+      setMerchantRatings(averages);
+    } catch (err) {
+      console.error('Failed to fetch merchant rating averages', err);
+    }
+  };
+
+  const fetchMerchantReviews = async (merchantId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('merchant_id', merchantId)
+        .not('shop_rating', 'is', null)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setSelectedMerchantReviews(data || []);
+    } catch (err) {
+      console.error('Failed to fetch reviews', err);
+    }
+  };
+
+  const fetchRiderRating = async () => {
+    if (!user || user.role !== 'rider') return;
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('rider_rating')
+        .eq('rider_id', user.id)
+        .not('rider_rating', 'is', null);
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const sum = data.reduce((acc: number, o: any) => acc + o.rider_rating, 0);
+        setRiderRating({
+          avg: parseFloat((sum / data.length).toFixed(1)),
+          count: data.length
+        });
+      } else {
+        setRiderRating({ avg: 5.0, count: 0 });
+      }
+    } catch (err) {
+      console.error('Failed to fetch rider rating', err);
+    }
+  };
+
   const handleAddToCart = (product: any) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
@@ -198,10 +295,115 @@ export default function Home() {
       setActivePromo(null);
       setPromoCodeInput('');
       setShowSuccessOverlay(true);
+      setIsTrackerCollapsed(false);
       fetchCustomerOrders();
       setTimeout(() => setShowSuccessOverlay(false), 4000);
     } catch (err: any) {
       alert(`สั่งไม่ได้: ${err.message}`);
+    }
+  };
+
+  const handleCancelOrder = async (order: any) => {
+    if (order.status === 'delivering') {
+      alert('ไม่สามารถยกเลิกได้เนื่องจากไรเดอร์กำลังนำส่งอาหาร 🏍️💨');
+      return;
+    }
+    
+    let confirmMsg = `คุณแน่ใจหรือไม่ว่าต้องการยกเลิกออเดอร์จากร้าน ${order.merchant_name}?`;
+    if (order.status === 'preparing') {
+      confirmMsg = `⚠️ ร้านค้ากำลังปรุงอาหารของคุณอยู่ คุณแน่ใจหรือไม่ว่าต้องการยกเลิกออเดอร์นี้?`;
+    } else if (order.status === 'calling_rider') {
+      confirmMsg = `⚠️ อาหารเสร็จแล้วและกำลังเรียกไรเดอร์ คุณแน่ใจหรือไม่ว่าต้องการยกเลิกออเดอร์นี้?`;
+    }
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', order.id);
+
+      if (error) throw error;
+
+      setMessage('ยกเลิกออเดอร์เรียบร้อยแล้ว ❌');
+      fetchCustomerOrders();
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      alert(`ยกเลิกออเดอร์ไม่ได้: ${err.message}`);
+    }
+  };
+
+  const [mapDetailInput, setMapDetailInput] = useState('');
+
+  const getClosestHotspot = (x: number, y: number) => {
+    let closest = CAMPUS_HOTSPOTS[0];
+    let minDistance = Math.sqrt(Math.pow(x - closest.x, 2) + Math.pow(y - closest.y, 2));
+    
+    CAMPUS_HOTSPOTS.forEach(spot => {
+      const dist = Math.sqrt(Math.pow(x - spot.x, 2) + Math.pow(y - spot.y, 2));
+      if (dist < minDistance) {
+        minDistance = dist;
+        closest = spot;
+      }
+    });
+    
+    return closest;
+  };
+
+  const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    const clampedX = Math.max(0, Math.min(100, x));
+    const clampedY = Math.max(0, Math.min(100, y));
+    
+    setSelectedPinCoords({ x: clampedX, y: clampedY });
+    const closest = getClosestHotspot(clampedX, clampedY);
+    setSelectedBuilding(closest.name);
+  };
+
+  const handleSavePin = () => {
+    if (!selectedBuilding) {
+      alert('กรุณาเลือกหรือปักหมุดตำแหน่งก่อนครับ');
+      return;
+    }
+    const fullDest = `📍 ${selectedBuilding}${mapDetailInput.trim() ? ` (${mapDetailInput.trim()})` : ''}`;
+    setDeliveryDest(fullDest);
+    setIsMapModalOpen(false);
+    setMessage(`ปักหมุดตำแหน่ง: "${selectedBuilding}" แล้ว! 📍`);
+    setTimeout(() => setMessage(null), 2500);
+  };
+
+  const handleSubmitRating = async (orderId: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          shop_rating: shopRatingInput,
+          shop_review: shopReviewInput.trim() || null,
+          rider_rating: riderRatingInput,
+          rider_review: riderReviewInput.trim() || null
+        })
+        .eq('id', orderId);
+      if (error) throw error;
+
+      setMessage('ขอบคุณสำหรับการรีวิวครับ! ⭐');
+      setRatingOrderId(null);
+      setShopRatingInput(5);
+      setShopReviewInput('');
+      setRiderRatingInput(5);
+      setRiderReviewInput('');
+
+      fetchCustomerOrders();
+      fetchMerchantAverages();
+      if (selectedMerchant) {
+        fetchMerchantReviews(selectedMerchant.id);
+      }
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      alert(`ไม่สามารถบันทึกรีวิวได้: ${err.message}`);
     }
   };
 
@@ -545,6 +747,34 @@ export default function Home() {
     else setMerchantRevenue(0);
   };
 
+  useEffect(() => {
+    if (selectedMerchant) {
+      fetchMerchantReviews(selectedMerchant.id);
+      setMerchantReviewsTab('menu');
+    } else {
+      setSelectedMerchantReviews([]);
+    }
+  }, [selectedMerchant]);
+
+  useEffect(() => {
+    if (!user || user.role !== 'customer') return;
+    const activeOrders = customerOrders.filter(o => o.status !== 'completed');
+    const hasDelivering = activeOrders.some(o => o.status === 'delivering');
+    if (!hasDelivering) {
+      setRiderProgress(0.1);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setRiderProgress(prev => {
+        if (prev >= 1.0) return 0.1;
+        return parseFloat((prev + 0.05).toFixed(2));
+      });
+    }, 850);
+
+    return () => clearInterval(interval);
+  }, [customerOrders, user]);
+
   // -------------------------------------------------------------
   // REAL-TIME DATABASE SUBSCRIPTIONS & EFFECT LOADS
   // -------------------------------------------------------------
@@ -554,20 +784,24 @@ export default function Home() {
     // Load initial data
     if (!user) {
       fetchMerchants();
+      fetchMerchantAverages();
     } else {
       if (user.role === 'customer') {
         fetchMerchants();
         fetchCustomerOrders();
         fetchPromoCodes();
+        fetchMerchantAverages();
       } else if (user.role === 'merchant') {
         fetchMerchantProducts();
         fetchMerchantOrders();
       } else if (user.role === 'rider') {
         fetchRiderJobs();
         fetchRiderHistory();
+        fetchRiderRating();
       } else if (user.role === 'admin') {
         fetchMerchants();
         fetchPromoCodes();
+        fetchMerchantAverages();
       }
     }
 
@@ -580,11 +814,16 @@ export default function Home() {
         // Refresh states depending on user role
         if (user.role === 'customer') {
           fetchCustomerOrders();
+          fetchMerchantAverages();
+          if (selectedMerchant) {
+            fetchMerchantReviews(selectedMerchant.id);
+          }
         } else if (user.role === 'merchant') {
           fetchMerchantOrders();
         } else if (user.role === 'rider') {
           fetchRiderJobs();
           fetchRiderHistory();
+          fetchRiderRating();
         }
       })
       .subscribe();
@@ -604,6 +843,7 @@ export default function Home() {
       .channel('profiles-realtime-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload) => {
         fetchMerchants();
+        fetchMerchantAverages();
       })
       .subscribe();
 
@@ -612,7 +852,7 @@ export default function Home() {
       supabase.removeChannel(promosChannel);
       supabase.removeChannel(profilesChannel);
     };
-  }, [user, loading]);
+  }, [user, loading, selectedMerchant]);
 
   // Loading skeleton screen
   if (loading) {
@@ -808,6 +1048,93 @@ export default function Home() {
                 <p className="text-xs text-slate-400">เลือกร้านที่ชอบแล้วสั่งได้เลย!</p>
               </div>
             </div>
+            {/* Real-time Current Active Orders Tracker at the top */}
+            {customerOrders.filter(o => o.status !== 'completed').length > 0 && (
+              <div className="space-y-4 animate-slide-up">
+                <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-2 px-1">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
+                  </span>
+                  <span>ติดตามสถานะออเดอร์ปัจจุบันของคุณ (Active Order Tracker)</span>
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {customerOrders.filter(o => o.status !== 'completed').map((order) => {
+                    const statusSteps = ['pending', 'preparing', 'calling_rider', 'delivering'];
+                    const stepNames = ['รับออเดอร์', 'กำลังทำ', 'เรียกไรเดอร์', 'กำลังส่ง'];
+                    const currentStepIndex = statusSteps.indexOf(order.status);
+                    
+                    return (
+                      <div key={order.id} className="bg-white rounded-3xl p-5 border border-blue-100 shadow-md relative overflow-hidden flex flex-col justify-between min-h-[140px] transition hover:shadow-lg">
+                        {/* Soft blue accent flare */}
+                        <div className="absolute right-0 top-0 w-24 h-24 bg-blue-50/50 rounded-full blur-xl pointer-events-none -mr-8 -mt-8"></div>
+                        
+                        <div className="relative z-10 flex justify-between items-start gap-4">
+                          <div className="space-y-1 text-left">
+                            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100/50">
+                              🛵 {order.status === 'pending' && 'รอร้านรับออเดอร์'}
+                              {order.status === 'preparing' && 'กำลังจัดปรุง'}
+                              {order.status === 'calling_rider' && 'กำลังหาคนส่ง'}
+                              {order.status === 'delivering' && 'กำลังเดินทางส่ง'}
+                            </span>
+                            <h4 className="text-sm font-black text-slate-800 pt-1">
+                              ร้าน {order.merchant_name}
+                            </h4>
+                            <p className="text-[10px] text-slate-400 font-semibold truncate max-w-[240px]">
+                              {order.items}
+                            </p>
+                          </div>
+                          
+                          <div className="text-right shrink-0">
+                            <span className="text-[9px] text-slate-400 block font-bold">ยอดชำระ</span>
+                            <span className="text-sm font-black text-slate-800">฿{order.total_price}</span>
+                          </div>
+                        </div>
+
+                        {/* Interactive Steps Visual Indicator */}
+                        <div className="relative z-10 pt-4 space-y-2">
+                          <div className="flex justify-between text-[8px] font-bold text-slate-400 px-1">
+                            {stepNames.map((name, idx) => (
+                              <span key={idx} className={idx <= currentStepIndex ? "text-blue-600" : "text-slate-350"}>
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                          
+                          {/* Progress Line */}
+                          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden flex relative">
+                            <div 
+                              className="h-full bg-blue-600 rounded-full transition-all duration-500 ease-out"
+                              style={{ width: `${(currentStepIndex / 3) * 100}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                        
+                        {order.rider_name && (
+                          <div className="relative z-10 mt-3 pt-2.5 border-t border-slate-100 flex justify-between items-center text-[9px] font-bold text-blue-600">
+                            <span>🏍️ กำลังนำส่งโดย คุณ {order.rider_name}</span>
+                            <span className="animate-pulse">🛵💨 กำลังมา</span>
+                          </div>
+                        )}
+
+                        {order.status !== 'delivering' && (
+                          <div className="relative z-10 mt-3 pt-2.5 border-t border-slate-100 flex justify-between items-center">
+                            <span className="text-[9px] text-slate-400 font-semibold">ออเดอร์นี้ยกเลิกได้หากจำเป็น</span>
+                            <button
+                              type="button"
+                              onClick={() => handleCancelOrder(order)}
+                              className="px-2.5 py-1 text-[9.5px] text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg font-black border border-red-100 transition cursor-pointer"
+                            >
+                              ✕ ยกเลิกออเดอร์
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Campus Promo Codes Carousel/Section */}
             {adminPromoCodes.length > 0 && (
@@ -946,7 +1273,7 @@ export default function Home() {
                                             {merchant.merchant_type === 'restaurant' ? '🍴 ร้านอาหาร' : '🛍️ มินิมาร์ท'}
                                           </span>
                                           <span>•</span>
-                                          <span className="text-amber-500">⭐ 4.9</span>
+                                          <span className="text-amber-500">⭐ {merchantRatings[merchant.id]?.avg || '5.0'} ({merchantRatings[merchant.id]?.count || 0})</span>
                                           <span>•</span>
                                           <span>⏳ 10-20 นาที (ส่งไว)</span>
                                         </div>
@@ -1036,7 +1363,7 @@ export default function Home() {
                                         {merchant.merchant_type === 'restaurant' ? '🍴 ร้านอาหาร' : '🛍️ มินิมาร์ท'}
                                       </span>
                                       <span>•</span>
-                                      <span className="text-amber-500">⭐ 4.8</span>
+                                      <span className="text-amber-500">⭐ {merchantRatings[merchant.id]?.avg || '5.0'} ({merchantRatings[merchant.id]?.count || 0})</span>
                                       <span>•</span>
                                       <span>⏳ 15-25 นาที</span>
                                     </div>
@@ -1054,41 +1381,155 @@ export default function Home() {
                   </div>
                 ) : (
                   <div className="space-y-4 animate-fade-in">
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center bg-white rounded-3xl px-6 py-4.5 border border-slate-100 shadow-sm">
                       <button
                         onClick={() => setSelectedMerchant(null)}
-                        className="text-xs font-bold text-slate-400 hover:text-slate-600 flex items-center gap-1.5"
+                        className="text-xs font-black text-slate-400 hover:text-slate-600 flex items-center gap-1.5 transition cursor-pointer"
                       >
-                        ← ย้อนกลับไปเลือกร้านค้า
+                        ← ย้อนกลับ
                       </button>
-                      <h3 className="text-sm font-black text-primary uppercase">
+                      <h3 className="text-sm font-black text-primary uppercase flex items-center gap-2">
+                        <span>{selectedMerchant.merchant_type === 'restaurant' ? '🍔' : '🛒'}</span>
                         {selectedMerchant.shop_name || selectedMerchant.name}
                       </h3>
                     </div>
 
-                    <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">รายการสินค้าในร้าน:</h4>
-                      {selectedMerchantProducts.length === 0 ? (
-                        <p className="text-xs text-slate-400 py-4 text-center">ไม่มีรายการสินค้าจัดแสดงในขณะนี้</p>
-                      ) : (
-                        <div className="divide-y divide-slate-100">
-                          {selectedMerchantProducts.map((prod) => (
-                            <div key={prod.id} className="py-3 flex justify-between items-center text-xs">
-                              <div>
-                                <p className="font-bold text-slate-700">{prod.name}</p>
-                                <p className="font-bold text-primary mt-0.5">฿{prod.price}</p>
-                              </div>
-                              <button
-                                onClick={() => handleAddToCart(prod)}
-                                className="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white text-[10px] font-extrabold rounded-lg transition cursor-pointer"
-                              >
-                                + ใส่ตะกร้า
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                    {/* Tab Navigation Menu vs Reviews */}
+                    <div className="flex border-b border-slate-200 gap-6 text-xs font-extrabold text-slate-400 px-6 pt-1 bg-white rounded-3xl shadow-sm border border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setMerchantReviewsTab('menu')}
+                        className={`pb-3.5 pt-3 transition cursor-pointer relative ${
+                          merchantReviewsTab === 'menu' ? 'text-primary' : 'hover:text-slate-650'
+                        }`}
+                      >
+                        🍽️ รายการเมนูสินค้า
+                        {merchantReviewsTab === 'menu' && (
+                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full"></div>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMerchantReviewsTab('reviews')}
+                        className={`pb-3.5 pt-3 transition cursor-pointer relative ${
+                          merchantReviewsTab === 'reviews' ? 'text-primary' : 'hover:text-slate-650'
+                        }`}
+                      >
+                        ⭐ รีวิวร้าน ({selectedMerchantReviews.length} รีวิว)
+                        {merchantReviewsTab === 'reviews' && (
+                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full"></div>
+                        )}
+                      </button>
                     </div>
+
+                    {merchantReviewsTab === 'menu' ? (
+                      <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider text-left">รายการสินค้าในร้าน:</h4>
+                        {selectedMerchantProducts.length === 0 ? (
+                          <p className="text-xs text-slate-400 py-8 text-center">ไม่มีรายการสินค้าจัดแสดงในขณะนี้</p>
+                        ) : (
+                          <div className="divide-y divide-slate-100">
+                            {selectedMerchantProducts.map((prod) => (
+                              <div key={prod.id} className="py-3.5 flex justify-between items-center text-xs">
+                                <div className="text-left">
+                                  <p className="font-bold text-slate-700">{prod.name}</p>
+                                  <p className="font-bold text-primary mt-0.5">฿{prod.price}</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddToCart(prod)}
+                                  className="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white text-[10px] font-extrabold rounded-lg transition cursor-pointer"
+                                >
+                                  + ใส่ตะกร้า
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-6 animate-fade-in text-left">
+                        {/* Rating Summary Dashboard */}
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 bg-slate-50/50 p-5 rounded-2xl border border-slate-100">
+                          {/* Left Column: Big Average Score */}
+                          <div className="md:col-span-4 flex flex-col items-center justify-center text-center space-y-1">
+                            <span className="text-4xl font-black text-slate-800">
+                              {selectedMerchantReviews.length > 0 
+                                ? (selectedMerchantReviews.reduce((sum, r) => sum + r.shop_rating, 0) / selectedMerchantReviews.length).toFixed(1)
+                                : '5.0'}
+                            </span>
+                            <div className="text-amber-500 text-sm font-black">
+                              {'★'.repeat(Math.round(selectedMerchantReviews.length > 0 
+                                ? selectedMerchantReviews.reduce((sum, r) => sum + r.shop_rating, 0) / selectedMerchantReviews.length
+                                : 5)) + '☆'.repeat(5 - Math.round(selectedMerchantReviews.length > 0 
+                                ? selectedMerchantReviews.reduce((sum, r) => sum + r.shop_rating, 0) / selectedMerchantReviews.length
+                                : 5))}
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-semibold block">
+                              อิงจาก {selectedMerchantReviews.length} รีวิว
+                            </span>
+                          </div>
+
+                          {/* Right Column: Star Progress Distribution */}
+                          <div className="md:col-span-8 space-y-1.5 text-xs text-slate-500 flex flex-col justify-center">
+                            {[5, 4, 3, 2, 1].map((stars) => {
+                              const count = selectedMerchantReviews.filter(r => r.shop_rating === stars).length;
+                              const percentage = selectedMerchantReviews.length > 0 
+                                ? (count / selectedMerchantReviews.length) * 100 
+                                : stars === 5 ? 100 : 0;
+                              return (
+                                <div key={stars} className="flex items-center gap-3">
+                                  <span className="w-10 font-bold shrink-0 text-right">{stars} ดาว</span>
+                                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div 
+                                      className="h-full bg-amber-500 rounded-full transition-all duration-500" 
+                                      style={{ width: `${percentage}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className="w-8 font-bold text-slate-400 shrink-0">{count}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Customer Reviews Feed */}
+                        <div className="space-y-4">
+                          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">ความคิดเห็นจากนักศึกษา:</h4>
+                          {selectedMerchantReviews.length === 0 ? (
+                            <div className="py-8 text-center text-xs text-slate-400 border border-dashed border-slate-150 rounded-2xl">
+                               ยังไม่มีรีวิวสำหรับร้านค้านี้ สั่งซื้อแล้วมารีวิวเป็นคนแรกกันเถอะ!
+                            </div>
+                          ) : (
+                            <div className="divide-y divide-slate-100 max-h-[350px] overflow-y-auto pr-1">
+                              {selectedMerchantReviews.map((rev) => {
+                                const maskedName = rev.customer_name 
+                                  ? rev.customer_name.charAt(0) + '***' + rev.customer_name.charAt(rev.customer_name.length - 1)
+                                  : 'ผู้ใช้ PSU Grab';
+                                return (
+                                  <div key={rev.id} className="py-4 space-y-1 text-xs">
+                                    <div className="flex justify-between items-center">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-extrabold text-slate-700">{maskedName}</span>
+                                        <span className="text-amber-500 font-extrabold">
+                                          {'★'.repeat(rev.shop_rating) + '☆'.repeat(5 - rev.shop_rating)}
+                                        </span>
+                                      </div>
+                                      <span className="text-[10px] text-slate-400 font-medium">
+                                        {new Date(rev.created_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                      </span>
+                                    </div>
+                                    <p className="text-slate-650 leading-relaxed font-medium bg-slate-50 p-2.5 rounded-xl border border-slate-100/50 mt-1">
+                                      {rev.shop_review || '👍 อร่อย บริการดีเยี่ยม'}
+                                    </p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1172,13 +1613,28 @@ export default function Home() {
                     </div>
 
                     {/* Delivery Destination Input */}
-                    <div className="space-y-1 pt-2">
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">ระบุปลายทางรับของใน ม.อ. <span className="text-red-500">*</span></label>
+                    <div className="space-y-1 pt-2 text-left">
+                      <div className="flex justify-between items-center">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">ระบุปลายทางรับของใน ม.อ. <span className="text-red-500">*</span></label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!selectedPinCoords) {
+                              setSelectedPinCoords({ x: 30, y: 75 });
+                              setSelectedBuilding('หอพักนักศึกษา 11 (ชาย)');
+                            }
+                            setIsMapModalOpen(true);
+                          }}
+                          className="text-[10px] font-extrabold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          📍 ปักหมุดบนแผนที่ (PSU Map)
+                        </button>
+                      </div>
                       <input
                         type="text"
                         value={deliveryDest}
                         onChange={(e) => setDeliveryDest(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-[#F7F9FA] text-xs transition"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-[#F7F9FA] text-xs transition font-semibold"
                         placeholder="เช่น หอ 11 ห้อง 420 หรือ ตึกวิศวะชั้น 2"
                         required
                       />
@@ -1231,6 +1687,140 @@ export default function Home() {
                             <p className="text-[9px] text-primary font-bold bg-primary-light px-2 py-1 rounded">
                               🏍️ ไรเดอร์ผู้จัดส่ง: คุณ {order.rider_name}
                             </p>
+                          )}
+
+                          {order.status !== 'completed' && order.status !== 'delivering' && (
+                            <div className="pt-1 text-left">
+                              <button
+                                type="button"
+                                onClick={() => handleCancelOrder(order)}
+                                className="px-2.5 py-1 text-[9.5px] text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg font-black border border-red-100 transition cursor-pointer"
+                              >
+                                ✕ ยกเลิกออเดอร์นี้
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Completed Order Ratings Section */}
+                          {order.status === 'completed' && order.shop_rating && (
+                            <div className="mt-2 bg-slate-50 border border-slate-100 rounded-2xl p-3 text-[10px] text-slate-500 space-y-1">
+                              <div className="flex flex-wrap items-center gap-x-2">
+                                <span className="font-bold text-slate-600">🏪 รีวิวร้านค้า:</span>
+                                <span className="text-amber-500 font-extrabold">{'★'.repeat(order.shop_rating) + '☆'.repeat(5 - order.shop_rating)}</span>
+                                {order.shop_review && <span className="text-slate-400 italic">"{order.shop_review}"</span>}
+                              </div>
+                              {order.rider_name && order.rider_rating && (
+                                <div className="flex flex-wrap items-center gap-x-2">
+                                  <span className="font-bold text-slate-600">🏍️ รีวิวไรเดอร์:</span>
+                                  <span className="text-amber-500 font-extrabold">{'★'.repeat(order.rider_rating) + '☆'.repeat(5 - order.rider_rating)}</span>
+                                  {order.rider_review && <span className="text-slate-400 italic">"{order.rider_review}"</span>}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {order.status === 'completed' && !order.shop_rating && (
+                            <div className="mt-2">
+                              {ratingOrderId === order.id ? (
+                                <div className="bg-blue-50/30 border border-blue-100 rounded-2xl p-4 space-y-4 animate-fade-in text-[11px]">
+                                  <h4 className="font-black text-slate-800 text-[11px] border-b border-slate-100 pb-2 text-left">
+                                    ⭐ ให้คะแนนและรีวิวบริการ
+                                  </h4>
+                                  
+                                  {/* Rate Merchant */}
+                                  <div className="space-y-1.5 text-left">
+                                    <span className="block font-bold text-slate-700">ให้คะแนนร้านค้า ({order.merchant_name}):</span>
+                                    <div className="flex gap-1.5">
+                                      {[1, 2, 3, 4, 5].map((star) => (
+                                        <button
+                                          type="button"
+                                          key={star}
+                                          onClick={() => setShopRatingInput(star)}
+                                          className={`w-7 h-7 rounded-lg text-sm flex items-center justify-center transition cursor-pointer ${
+                                            shopRatingInput >= star ? 'bg-amber-100 text-amber-500' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                          }`}
+                                        >
+                                          ★
+                                        </button>
+                                      ))}
+                                    </div>
+                                    <input
+                                      type="text"
+                                      value={shopReviewInput}
+                                      onChange={(e) => setShopReviewInput(e.target.value)}
+                                      placeholder="เขียนรีวิวร้านค้า เช่น อร่อยมาก, แพ็คดีมากๆ (ไม่บังคับ)"
+                                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl outline-none text-[10px] focus:ring-1 focus:ring-blue-500"
+                                    />
+                                  </div>
+
+                                  {/* Rate Rider */}
+                                  {order.rider_name && (
+                                    <div className="space-y-1.5 border-t border-slate-100/50 pt-2.5 text-left">
+                                      <span className="block font-bold text-slate-700">ให้คะแนนไรเดอร์ (คุณ {order.rider_name}):</span>
+                                      <div className="flex gap-1.5">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                          <button
+                                            type="button"
+                                            key={star}
+                                            onClick={() => setRiderRatingInput(star)}
+                                            className={`w-7 h-7 rounded-lg text-sm flex items-center justify-center transition cursor-pointer ${
+                                              riderRatingInput >= star ? 'bg-amber-100 text-amber-500' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                            }`}
+                                          >
+                                            ★
+                                          </button>
+                                        ))}
+                                      </div>
+                                      <input
+                                        type="text"
+                                        value={riderReviewInput}
+                                        onChange={(e) => setRiderReviewInput(e.target.value)}
+                                        placeholder="เขียนรีวิวคนขับ เช่น ส่งของสุภาพ สุภาพ (ไม่บังคับ)"
+                                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl outline-none text-[10px] focus:ring-1 focus:ring-blue-500"
+                                      />
+                                    </div>
+                                  )}
+
+                                  {/* Buttons */}
+                                  <div className="flex gap-2 justify-end pt-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setRatingOrderId(null);
+                                        setShopRatingInput(5);
+                                        setShopReviewInput('');
+                                        setRiderRatingInput(5);
+                                        setRiderReviewInput('');
+                                      }}
+                                      className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-250 text-slate-600 font-bold rounded-lg transition text-[10px] cursor-pointer"
+                                    >
+                                      ยกเลิก
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSubmitRating(order.id)}
+                                      className="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white font-bold rounded-lg transition text-[10px] cursor-pointer"
+                                    >
+                                      ส่งรีวิว
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRatingOrderId(order.id);
+                                    setShopRatingInput(5);
+                                    setShopReviewInput('');
+                                    setRiderRatingInput(5);
+                                    setRiderReviewInput('');
+                                  }}
+                                  className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-amber-700 font-black tracking-wide text-[9px] uppercase cursor-pointer hover:scale-[1.02] active:scale-95 transition-all text-left"
+                                >
+                                  ⭐ รีวิวและให้คะแนนบริการ
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
                       ))}
@@ -1304,7 +1894,12 @@ export default function Home() {
                   </div>
                   <div className="bg-[#F7F9FA] p-4 rounded-2xl text-center">
                     <p className="text-[10px] font-bold text-slate-400 mb-0.5">คะแนนสะสม</p>
-                    <p className="text-lg font-black text-slate-850">5.0 ★</p>
+                    <p className="text-lg font-black text-slate-850">
+                      {riderRating.count > 0 ? `${riderRating.avg} ★` : '5.0 ★'}
+                    </p>
+                    {riderRating.count > 0 && (
+                      <span className="text-[9px] text-slate-400 font-bold block">({riderRating.count} รีวิว)</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2041,6 +2636,158 @@ export default function Home() {
         </div>
       )}
 
+      {/* PSU Hatyai Campus Map Modal */}
+      {isMapModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="max-w-xl w-full bg-white rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-slate-100 animate-slide-up">
+            
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-[#F7F9FA]/50">
+              <div className="space-y-0.5 text-left">
+                <h3 className="text-sm font-black text-slate-800">ปักหมุดตำแหน่งจัดส่ง (ม.อ. หาดใหญ่)</h3>
+                <p className="text-[10px] text-slate-400 font-bold">เลือกตำแหน่งบนแผนที่จำลองวิทยาเขต</p>
+              </div>
+              <button
+                onClick={() => setIsMapModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 hover:text-slate-800 flex items-center justify-center text-xs font-bold transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 text-center">
+              
+              {/* Informative tips */}
+              <div className="bg-blue-50/50 border border-blue-100/50 rounded-2xl p-3.5 text-left text-[11px] text-slate-500 font-medium">
+                💡 <b>คำแนะนำ:</b> คลิกบนปุ่มสถานที่หรือส่วนใดๆ บนแผนที่เพื่อย้ายหมุดแดง (📍) ระบบจะคำนวณตำแหน่งที่ใกล้ที่สุดให้โดยอัตโนมัติ
+              </div>
+
+              {/* Interactive PSU Map Grid Container */}
+              <div className="relative aspect-[5/4] w-full max-w-[480px] mx-auto bg-slate-100 border border-slate-200 rounded-3xl overflow-hidden shadow-inner select-none">
+                
+                {/* Map Grid Pattern background */}
+                <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px] opacity-40"></div>
+
+                {/* Illustrated Roads / Paths */}
+                {/* Main campus loop road */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70%] h-[60%] border-4 border-dashed border-slate-200 rounded-[40px] pointer-events-none"></div>
+                {/* Diagonal roads */}
+                <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                  <div className="absolute top-0 left-[25%] w-0.5 h-full bg-slate-200"></div>
+                  <div className="absolute top-[40%] left-0 w-full h-0.5 bg-slate-200"></div>
+                </div>
+
+                {/* Sri-Trang Lake (🏞️) Decoration */}
+                <div className="absolute top-[68%] left-[72%] w-[22%] h-[18%] bg-sky-100 border border-sky-300 rounded-[50px] flex flex-col items-center justify-center pointer-events-none shadow-inner">
+                  <span className="text-xl">🏞️</span>
+                  <span className="text-[8px] font-bold text-sky-600 mt-0.5">อ่างศรีตรัง</span>
+                </div>
+
+                {/* Clickable Overlay Layer for Coordinate Math */}
+                <div 
+                  onClick={handleMapClick}
+                  className="absolute inset-0 z-20 cursor-crosshair"
+                ></div>
+
+                {/* Hotspots Marker Buttons */}
+                {CAMPUS_HOTSPOTS.map((spot) => {
+                  const isCurrentSelection = selectedBuilding === spot.name;
+                  return (
+                    <button
+                      key={spot.name}
+                      type="button"
+                      onClick={() => {
+                        setSelectedPinCoords({ x: spot.x, y: spot.y });
+                        setSelectedBuilding(spot.name);
+                      }}
+                      className={`absolute z-35 -translate-x-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-2xl flex items-center gap-1 shadow-md hover:scale-105 active:scale-95 transition-all text-[9.5px] font-black border cursor-pointer ${
+                        isCurrentSelection
+                          ? 'bg-primary border-primary text-white ring-4 ring-blue-100 z-30'
+                          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-350'
+                      }`}
+                      style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
+                    >
+                      <span className="text-xs shrink-0">{spot.emoji}</span>
+                      <span className="truncate max-w-[80px]">{spot.name.split(' (')[0]}</span>
+                    </button>
+                  );
+                })}
+
+                {/* Floating Red Marker Pin */}
+                {selectedPinCoords && (
+                  <div 
+                    className="absolute z-40 pointer-events-none -translate-x-1/2 -translate-y-full transition-all duration-300 ease-out"
+                    style={{ left: `${selectedPinCoords.x}%`, top: `${selectedPinCoords.y}%` }}
+                  >
+                    {/* Animated Pulse Ring underneath the pin */}
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-2 bg-red-500/35 rounded-full blur-xs animate-ping"></div>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-1 bg-red-500 rounded-full"></div>
+                    
+                    {/* Visual Marker Pin icon */}
+                    <div className="text-3xl filter drop-shadow-[0_4px_3px_rgba(0,0,0,0.3)] animate-bounce">
+                      📍
+                    </div>
+                  </div>
+                )}
+
+              </div>
+
+              {/* Pin Selection Details Form */}
+              {selectedBuilding && (
+                <div className="bg-slate-50 border border-slate-200/60 rounded-3xl p-5 text-left space-y-4 animate-fade-in font-sans">
+                  <div className="flex gap-3 items-center">
+                    <span className="text-3xl">📍</span>
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">พิกัดสถานที่ปัจจุบัน</span>
+                      <h4 className="text-sm font-black text-slate-800">{selectedBuilding}</h4>
+                      {selectedPinCoords && (
+                        <span className="text-[9px] text-slate-400 font-semibold">
+                          (พิกัดแผนที่: X={selectedPinCoords.x.toFixed(1)}%, Y={selectedPinCoords.y.toFixed(1)}%)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      รายละเอียดอาคาร / ชั้น / เลขห้อง (ไม่บังคับ)
+                    </label>
+                    <input
+                      type="text"
+                      value={mapDetailInput}
+                      onChange={(e) => setMapDetailInput(e.target.value)}
+                      placeholder="เช่น ชั้น 3 ห้อง 302, หรือ ใต้ตึกวิศวะเครื่องกล"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-xs transition font-semibold"
+                    />
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-slate-100 bg-[#F7F9FA]/50 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setIsMapModalOpen(false)}
+                className="flex-1 py-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl transition duration-200 text-center cursor-pointer"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={handleSavePin}
+                className="flex-1 py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl transition duration-200 text-center cursor-pointer shadow-md shadow-blue-100"
+              >
+                บันทึกและใช้พิกัดนี้
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* Success Animation Overlay */}
       {showSuccessOverlay && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
@@ -2098,6 +2845,312 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Grab-style floating order status tracker */}
+      {user && user.role === 'customer' && (() => {
+        const activeOrders = customerOrders.filter(o => o.status !== 'completed');
+        if (activeOrders.length === 0) return null;
+        
+        // Use the latest active order (the first in the descending sorted list)
+        const order = activeOrders[0];
+        
+        const statusSteps = ['pending', 'preparing', 'calling_rider', 'delivering'];
+        const currentStepIndex = statusSteps.indexOf(order.status);
+
+        // Helper to format steps
+        const steps = [
+          {
+            title: 'รับออเดอร์แล้ว / อยู่ที่ครัว',
+            desc: order.status === 'pending' ? 'รอร้านอาหารรับออเดอร์...' : 'ครัวได้รับออเดอร์แล้ว กำลังจัดเตรียมอาหาร...',
+            emoji: '🍳',
+            isActive: order.status === 'pending' || order.status === 'preparing' || order.status === 'calling_rider' || order.status === 'delivering',
+            isCurrent: order.status === 'pending' || order.status === 'preparing',
+          },
+          {
+            title: 'กำลังรอไรเดอร์มารับของ',
+            desc: 'จัดเตรียมของเสร็จแล้ว กำลังจับคู่ไรเดอร์มารับ...',
+            emoji: '🛵',
+            isActive: order.status === 'calling_rider' || order.status === 'delivering',
+            isCurrent: order.status === 'calling_rider',
+          },
+          {
+            title: 'ไรเดอร์กำลังไปส่ง',
+            desc: order.rider_name ? `คุณ ${order.rider_name} กำลังนำออเดอร์มาส่งให้คุณ` : 'ไรเดอร์กำลังนำสินค้าส่งไปยังจุดหมายของคุณ',
+            emoji: '🏍️',
+            isActive: order.status === 'delivering',
+            isCurrent: order.status === 'delivering',
+          },
+        ];
+
+        if (isTrackerCollapsed) {
+          // Sleek collapsed pill floating at the bottom
+          return (
+            <div className="fixed bottom-6 right-6 left-6 md:left-auto md:w-96 z-40 animate-slide-up">
+              <div 
+                onClick={() => setIsTrackerCollapsed(false)}
+                className="bg-primary hover:bg-primary-hover text-white py-3.5 px-5 rounded-2xl shadow-2xl flex justify-between items-center font-bold text-xs cursor-pointer border border-blue-500 hover:scale-[1.02] active:scale-95 transition-all duration-200"
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-[14px]">🛵</span>
+                  <span className="truncate text-left">
+                    ร้าน {order.merchant_name}: {order.status === 'pending' && 'รอร้านรับออเดอร์'}
+                    {order.status === 'preparing' && 'อยู่ที่ครัว กำลังปรุง'}
+                    {order.status === 'calling_rider' && 'กำลังรอไรเดอร์'}
+                    {order.status === 'delivering' && 'กำลังไปส่ง'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                  <span className="bg-white/20 px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wide">ขยาย</span>
+                  <span>❯</span>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // Expanded detailed tracking sheet/card
+        return (
+          <div className="fixed bottom-0 left-0 right-0 md:bottom-6 md:right-6 md:left-auto md:w-[380px] z-40 animate-slide-up p-4 md:p-0">
+            <div className="bg-white rounded-t-[32px] md:rounded-[32px] shadow-2xl border border-slate-100/80 overflow-hidden flex flex-col max-h-[85vh] md:max-h-none">
+              
+              {/* Header */}
+              <div className="px-6 py-4.5 border-b border-slate-100 bg-[#F7F9FA] flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🛵</span>
+                  <div className="text-left">
+                    <h3 className="text-sm font-black text-slate-800">ติดตามสถานะอาหาร</h3>
+                    <p className="text-[10px] text-slate-400 font-bold">PSU Grab Express</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsTrackerCollapsed(true)}
+                  className="px-3 py-1.5 bg-slate-200 hover:bg-slate-350 text-slate-600 hover:text-slate-800 text-[10px] font-black rounded-xl transition cursor-pointer flex items-center gap-1"
+                >
+                  พับหน้าจอ
+                </button>
+              </div>
+
+              {/* Order Info Summary */}
+              <div className="p-5 border-b border-slate-100/80 bg-blue-50/10 text-left">
+                <div className="flex justify-between items-start gap-4">
+                  <div>
+                    <span className="text-[9px] font-black bg-primary-light text-primary px-2.5 py-0.5 rounded-lg border border-primary/10">
+                      ร้านค้าพาร์ทเนอร์
+                    </span>
+                    <h4 className="text-sm font-black text-slate-800 mt-1.5">
+                      {order.merchant_name}
+                    </h4>
+                    <p className="text-[10px] text-slate-400 font-semibold truncate max-w-[240px] mt-0.5">
+                      รายการ: {order.items}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-[9px] text-slate-400 font-bold block">ราคารวม</span>
+                    <span className="text-sm font-black text-slate-850">฿{order.total_price}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Animated Rider Tracking Mini Map */}
+              {(() => {
+                let merchantCoords = { x: 74, y: 62 }; 
+                if (order.merchant_name.includes('วิศวะ')) {
+                  merchantCoords = { x: 22, y: 52 };
+                } else if (order.merchant_name.includes('มินิมาร์ท') || order.merchant_name.includes('LRC')) {
+                  merchantCoords = { x: 62, y: 55 };
+                } else if (order.merchant_name.includes('แพทย์') || order.merchant_name.includes('โรงพยาบาล')) {
+                  merchantCoords = { x: 55, y: 18 };
+                } else if (order.merchant_name.includes('วิทย')) {
+                  merchantCoords = { x: 32, y: 35 };
+                }
+
+                let customerCoords = { x: 30, y: 75 }; 
+                if (selectedPinCoords) {
+                  customerCoords = selectedPinCoords;
+                } else {
+                  const destText = order.dest || '';
+                  const match = CAMPUS_HOTSPOTS.find(spot => destText.includes(spot.name.split(' (')[0]) || destText.includes(spot.name.substring(0, 8)));
+                  if (match) {
+                    customerCoords = { x: match.x, y: match.y };
+                  }
+                }
+
+                let riderCoords = { x: merchantCoords.x, y: merchantCoords.y };
+                if (order.status === 'calling_rider') {
+                  riderCoords = {
+                    x: merchantCoords.x + (50 - merchantCoords.x) * 0.3,
+                    y: merchantCoords.y + (50 - merchantCoords.y) * 0.3
+                  };
+                } else if (order.status === 'delivering') {
+                  riderCoords = {
+                    x: merchantCoords.x + (customerCoords.x - merchantCoords.x) * riderProgress,
+                    y: merchantCoords.y + (customerCoords.y - merchantCoords.y) * riderProgress
+                  };
+                }
+
+                return (
+                  <div className="relative w-full h-[160px] bg-slate-50 border-b border-slate-100 overflow-hidden select-none">
+                    <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:12px_12px] opacity-40"></div>
+                    
+                    <div className="absolute top-[68%] left-[72%] w-[22%] h-[18%] bg-sky-100 border border-sky-200 rounded-[50px] flex items-center justify-center pointer-events-none opacity-60">
+                      <span className="text-[7px] font-bold text-sky-500">อ่างศรีตรัง</span>
+                    </div>
+
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                      <line 
+                        x1={`${merchantCoords.x}%`} 
+                        y1={`${merchantCoords.y}%`} 
+                        x2={`${customerCoords.x}%`} 
+                        y2={`${customerCoords.y}%`} 
+                        stroke="#94a3b8" 
+                        strokeWidth="2.5" 
+                        strokeDasharray="4 6"
+                        className="opacity-75"
+                      />
+                    </svg>
+
+                    <div 
+                      className="absolute z-10 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
+                      style={{ left: `${merchantCoords.x}%`, top: `${merchantCoords.y}%` }}
+                    >
+                      <span className="text-sm">🏪</span>
+                      <span className="text-[7px] font-black text-slate-800 bg-white/95 px-1 py-0.2 rounded border shadow-sm">ร้าน</span>
+                    </div>
+
+                    <div 
+                      className="absolute z-10 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
+                      style={{ left: `${customerCoords.x}%`, top: `${customerCoords.y}%` }}
+                    >
+                      <span className="text-sm animate-bounce">📍</span>
+                      <span className="text-[7px] font-black text-primary bg-white/95 px-1 py-0.2 rounded border shadow-sm font-sans">คุณ</span>
+                    </div>
+
+                    <div 
+                      className="absolute z-20 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-700 ease-out"
+                      style={{ left: `${riderCoords.x}%`, top: `${riderCoords.y}%` }}
+                    >
+                      <div className="text-lg animate-pulse filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.25)]">
+                        🛵
+                      </div>
+                      <span className="text-[7px] font-bold text-emerald-600 bg-white/95 border border-emerald-250 px-1 py-0.2 rounded shadow-sm scale-90 whitespace-nowrap font-sans">
+                        {order.status === 'pending' && 'เตรียมส่ง'}
+                        {order.status === 'preparing' && 'อยู่ที่ครัว'}
+                        {order.status === 'calling_rider' && 'กำลังมา'}
+                        {order.status === 'delivering' && 'กำลังส่ง 💨'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Vertical Detailed Stepper */}
+              <div className="p-6 space-y-6 overflow-y-auto max-h-[300px] md:max-h-none text-left">
+                {steps.map((step, idx) => (
+                  <div key={idx} className="flex gap-4 relative group">
+                    {/* Line connector */}
+                    {idx < steps.length - 1 && (
+                      <div 
+                        className={`absolute left-4.5 top-8 bottom-0 w-0.5 -translate-x-1/2 ${
+                          steps[idx + 1].isActive ? 'bg-primary' : 'bg-slate-200'
+                        }`}
+                      ></div>
+                    )}
+
+                    {/* Step Icon Indicator */}
+                    <div 
+                      className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0 border-2 transition-all duration-300 z-10 ${
+                        step.isCurrent 
+                          ? 'border-primary bg-primary text-white scale-110 shadow-lg shadow-blue-100'
+                          : step.isActive
+                            ? 'border-primary bg-primary-light text-primary'
+                            : 'border-slate-250 bg-slate-50 text-slate-400'
+                      }`}
+                    >
+                      {step.isCurrent && step.emoji ? step.emoji : (step.isActive ? '✓' : step.emoji)}
+                    </div>
+
+                    {/* Step Content */}
+                    <div className="space-y-0.5 pt-1 flex-1">
+                      <h5 
+                        className={`text-xs font-black transition-colors ${
+                          step.isCurrent 
+                            ? 'text-primary' 
+                            : step.isActive 
+                              ? 'text-slate-800' 
+                              : 'text-slate-400'
+                        }`}
+                      >
+                        {step.title}
+                      </h5>
+                      <p className={`text-[10px] font-semibold leading-relaxed ${step.isActive ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {step.desc}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Rider Section (if delivering/assigned) */}
+              {order.rider_name && (
+                <div className="p-4 bg-primary-light/40 border-t border-slate-100 flex justify-between items-center gap-3">
+                  <div className="flex items-center gap-3 text-left">
+                    <div className="w-10 h-10 bg-primary/10 text-primary rounded-2xl flex items-center justify-center text-xl shrink-0">
+                      🏍️
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">ไรเดอร์นำส่ง</p>
+                      <p className="text-xs font-black text-slate-800">คุณ {order.rider_name}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Mock Call Rider Action */}
+                  <a 
+                    href="tel:0800000000"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      alert(`โทรหาไรเดอร์ คุณ ${order.rider_name} (เบอร์จำลอง) 📞`);
+                    }}
+                    className="px-3.5 py-2 bg-primary hover:bg-primary-hover text-white text-[10px] font-bold rounded-xl transition shadow shadow-blue-100/50 shrink-0"
+                  >
+                    📞 โทรหาไรเดอร์
+                  </a>
+                </div>
+              )}
+
+              {/* Bottom Actions to close / collapse */}
+              <div className="p-5 bg-slate-50/80 border-t border-slate-150/50 flex flex-col gap-2">
+                {order.status !== 'delivering' && (
+                  <button
+                    type="button"
+                    onClick={() => handleCancelOrder(order)}
+                    className="w-full py-3 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 hover:text-red-700 text-xs font-black rounded-xl transition duration-200 cursor-pointer text-center flex items-center justify-center gap-1.5"
+                  >
+                    <span>✕</span> ยกเลิกออเดอร์นี้
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsTrackerCollapsed(true)}
+                  className="w-full py-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl transition duration-200 shadow-sm cursor-pointer text-center"
+                >
+                  พับหน้าจอไปสั่งต่อ
+                </button>
+                <div className="text-center">
+                  <span className="text-[9px] text-slate-400 font-bold">
+                    📍 ปลายทางจัดส่ง: {order.dest}
+                  </span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Footer */}
       <footer className="bg-white border-t border-slate-100 mt-16 py-8 text-center text-slate-400 text-xs">
