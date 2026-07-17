@@ -874,18 +874,18 @@ export default function Home() {
       {/* Sticky Header with Glassmorphism */}
       <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-150 z-50 shadow-sm transition-all duration-300">
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-2xl font-black text-primary tracking-tight flex items-center gap-2 hover:scale-[1.02] transition duration-200">
-              PSU Grab <span className="text-xl">🛵</span>
+          <Link href="/" className="flex items-center gap-1.5">
+            <span className="text-lg sm:text-2xl font-black text-primary tracking-tight flex items-center gap-1 sm:gap-2 hover:scale-[1.02] transition duration-200 shrink-0">
+              PSU Grab <span className="text-sm sm:text-xl">🛵</span>
             </span>
           </Link>
-
+ 
           <div className="flex items-center gap-3">
             {user ? (
-              <div className="flex items-center gap-4">
-                <div className="flex flex-col items-end">
-                  <span className="text-sm font-black text-slate-850">{user.name}</span>
-                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wide ${user.role === 'customer'
+              <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                <div className="flex flex-col items-end leading-none">
+                  <span className="text-xs sm:text-sm font-black text-slate-850 truncate max-w-[70px] sm:max-w-[120px] block">{user.name}</span>
+                  <span className={`text-[8px] sm:text-[9.5px] px-1.5 py-0.5 sm:px-2 rounded-full font-bold uppercase tracking-wide mt-1 ${user.role === 'customer'
                     ? 'bg-primary-light text-primary border border-primary-light/40'
                     : user.role === 'rider'
                       ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
@@ -896,30 +896,31 @@ export default function Home() {
                     {user.role === 'customer'
                       ? 'ลูกค้า'
                       : user.role === 'rider'
-                        ? 'คนขับ / ไรเดอร์'
+                        ? 'ไรเดอร์'
                         : user.role === 'admin'
-                          ? 'ผู้ดูแลระบบหลัก'
-                          : `ร้าน: ${user.shopName} (${user.merchantType === 'restaurant' ? 'อาหาร' : 'มาร์ท'})`}
+                          ? 'แอดมิน'
+                          : `ร้าน: ${user.shopName}`}
                   </span>
                 </div>
                 <button
                   onClick={logout}
-                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-xl transition duration-300 cursor-pointer"
+                  className="px-2.5 py-1.5 sm:px-4 sm:py-2 text-[10px] sm:text-xs font-bold text-slate-500 hover:text-red-600 hover:bg-red-50 bg-slate-50 rounded-xl transition duration-300 cursor-pointer shrink-0"
                 >
-                  ออกจากระบบ
+                  <span className="hidden sm:inline">ออกจากระบบ</span>
+                  <span className="sm:hidden">ออก</span>
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Link
                   href="/login"
-                  className="px-4 py-2.5 text-xs font-bold text-primary hover:bg-primary-light rounded-xl transition duration-300"
+                  className="px-2.5 py-1.5 sm:px-4 sm:py-2.5 text-[10px] sm:text-xs font-bold text-primary hover:bg-primary-light rounded-xl transition duration-300"
                 >
                   เข้าสู่ระบบ
                 </Link>
                 <Link
                   href="/register"
-                  className="px-4 py-2.5 text-xs font-bold bg-primary hover:bg-primary-hover text-white rounded-xl shadow-md shadow-emerald-100/50 hover:shadow-lg transition duration-300"
+                  className="px-2.5 py-1.5 sm:px-4 sm:py-2.5 text-[10px] sm:text-xs font-bold bg-primary hover:bg-primary-hover text-white rounded-xl shadow-md shadow-emerald-100/50 hover:shadow-lg transition duration-300"
                 >
                   สมัครสมาชิก
                 </Link>
@@ -2701,15 +2702,15 @@ export default function Home() {
                         setSelectedPinCoords({ x: spot.x, y: spot.y });
                         setSelectedBuilding(spot.name);
                       }}
-                      className={`absolute z-35 -translate-x-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-2xl flex items-center gap-1 shadow-md hover:scale-105 active:scale-95 transition-all text-[9.5px] font-black border cursor-pointer ${
+                      className={`absolute z-35 -translate-x-1/2 -translate-y-1/2 px-1.5 py-1 sm:px-2.5 sm:py-1.5 rounded-xl sm:rounded-2xl flex items-center gap-0.5 sm:gap-1 shadow-md hover:scale-105 active:scale-95 transition-all text-[8px] sm:text-[9.5px] font-black border cursor-pointer ${
                         isCurrentSelection
                           ? 'bg-primary border-primary text-white ring-4 ring-blue-100 z-30'
                           : 'bg-white border-slate-200 text-slate-700 hover:border-slate-350'
                       }`}
                       style={{ left: `${spot.x}%`, top: `${spot.y}%` }}
                     >
-                      <span className="text-xs shrink-0">{spot.emoji}</span>
-                      <span className="truncate max-w-[80px]">{spot.name.split(' (')[0]}</span>
+                      <span className="text-[10px] sm:text-xs shrink-0">{spot.emoji}</span>
+                      <span className="truncate max-w-[40px] sm:max-w-[80px]">{spot.name.split(' (')[0]}</span>
                     </button>
                   );
                 })}
