@@ -60,3 +60,13 @@ body {
   filter: drop-shadow(0 4px 6px -1px rgb(0 0 0 / 0.05)) drop-shadow(0 2px 4px -2px rgb(0 0 0 / 0.05));
 }
 
+/* Golden premium glow for recommended shops */
+.glow-gold {
+  box-shadow: 0 4px 15px -3px rgba(245, 158, 11, 0.1), 0 4px 6px -4px rgba(245, 158, 11, 0.1);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glow-gold:hover {
+  box-shadow: 0 12px 25px -5px rgba(245, 158, 11, 0.25), 0 8px 10px -6px rgba(245, 158, 11, 0.2);
+}
+
+

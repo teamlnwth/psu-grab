@@ -28,6 +28,45 @@ export default function Home() {
   const [promoError, setPromoError] = useState<string | null>(null);
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
 
+  // Carousel states for recommended shops
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(true);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const recommended = merchants.filter(m => m.is_partner === true);
+
+  useEffect(() => {
+    if (recommended.length <= (isMobile ? 1 : 2)) {
+      setCarouselIndex(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setCarouselIndex((prev) => {
+        const maxIndex = isMobile ? recommended.length - 1 : recommended.length - 2;
+        if (prev >= maxIndex) return 0;
+        return prev + 1;
+      });
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [recommended.length, isMobile]);
+
+  const nextSlide = () => {
+    const maxIndex = isMobile ? recommended.length - 1 : recommended.length - 2;
+    setCarouselIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
+  };
+
+  const prevSlide = () => {
+    const maxIndex = isMobile ? recommended.length - 1 : recommended.length - 2;
+    setCarouselIndex((prev) => (prev <= 0 ? maxIndex : prev - 1));
+  };
+
   // Merchant states
   const [merchantProducts, setMerchantProducts] = useState<any[]>([]);
   const [newProductName, setNewProductName] = useState('');
@@ -768,16 +807,6 @@ export default function Home() {
                 <h2 className="text-2xl font-black text-slate-800 mt-2">สวัสดี {user.name} 👋</h2>
                 <p className="text-xs text-slate-400">เลือกร้านที่ชอบแล้วสั่งได้เลย!</p>
               </div>
-              <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl">
-                <button
-                  onClick={() => setActiveCategory('all')}
-                  className={`px-4 py-2 text-xs font-extrabold rounded-lg transition-all ${
-                    activeCategory === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  ร้านค้าพาร์ทเนอร์
-                </button>
-              </div>
             </div>
 
             {/* Campus Promo Codes Carousel/Section */}
@@ -856,49 +885,176 @@ export default function Home() {
                 
                 {/* 1. Shop list or Selected Shop Products */}
                 {!selectedMerchant ? (
-                  <div className="space-y-4">
-                    <h3 className="text-base font-extrabold text-slate-800">🏪 ร้านค้าพาร์ทเนอร์ในวิทยาเขต</h3>
-                    {merchants.filter(m => m.is_partner !== false).length === 0 ? (
-                      <div className="bg-white rounded-3xl p-8 border border-slate-100 text-center text-xs text-slate-400">
-                        ยังไม่มีร้านค้าพาร์ทเนอร์ตอนนี้
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {merchants.filter(m => m.is_partner !== false).map((merchant) => (
-                          <div 
-                            key={merchant.id} 
-                            onClick={() => {
-                              setSelectedMerchant(merchant);
-                              fetchSelectedMerchantProducts(merchant.id);
-                            }}
-                            className="bg-white rounded-3xl p-6 border border-slate-100/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-between cursor-pointer group"
-                          >
-                            <div className="flex items-center gap-4">
-                              <span className="w-14 h-14 rounded-2xl bg-primary-light/50 group-hover:bg-primary-light text-3xl flex items-center justify-center transition duration-300">
-                                {merchant.merchant_type === 'restaurant' ? '🍔' : '🛒'}
-                              </span>
-                              <div className="space-y-1">
-                                <h4 className="text-sm font-black text-slate-800 group-hover:text-primary transition">
-                                  {merchant.shop_name || merchant.name}
-                                </h4>
-                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-400 font-semibold">
-                                  <span className={merchant.merchant_type === 'restaurant' ? 'text-indigo-600' : 'text-amber-600'}>
-                                    {merchant.merchant_type === 'restaurant' ? '🍴 ร้านอาหาร' : '🛍️ มินิมาร์ท'}
-                                  </span>
-                                  <span>•</span>
-                                  <span className="text-amber-500">⭐ 4.8</span>
-                                  <span>•</span>
-                                  <span>⏳ 15-25 นาที</span>
+                  <div className="space-y-8 animate-fade-in">
+                    {/* 1. Recommended Shops Section */}
+                    {recommended.length > 0 && (
+                      <div className="space-y-4">
+                        <h3 className="text-base font-black text-slate-800 flex items-center gap-2">
+                          <span>⭐</span> ร้านแนะนำโดยแอดมิน (Recommended Shops)
+                        </h3>
+                        
+                        <div className="relative group/carousel">
+                          {/* Left Navigation Arrow */}
+                          {recommended.length > (isMobile ? 1 : 2) && (
+                            <button
+                              type="button"
+                              onClick={prevSlide}
+                              className="absolute -left-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/90 border border-slate-100 shadow-md hover:bg-white text-slate-600 hover:text-slate-900 flex items-center justify-center text-xs font-bold transition-all opacity-0 group-hover/carousel:opacity-100 hover:scale-105 active:scale-95 cursor-pointer"
+                              title="ย้อนกลับ"
+                            >
+                              ❮
+                            </button>
+                          )}
+
+                          {/* Viewport */}
+                          <div className="overflow-hidden -mx-2 p-1">
+                            <div 
+                              className="flex transition-transform duration-500 ease-in-out"
+                              style={{ 
+                                transform: `translateX(-${carouselIndex * (isMobile ? 100 : 50)}%)` 
+                              }}
+                            >
+                              {recommended.map((merchant) => (
+                                <div 
+                                  key={merchant.id}
+                                  className="w-full md:w-1/2 shrink-0 px-2"
+                                >
+                                  <div 
+                                    onClick={() => {
+                                      setSelectedMerchant(merchant);
+                                      fetchSelectedMerchantProducts(merchant.id);
+                                    }}
+                                    className="bg-[#FFFDF9] rounded-3xl p-6 border border-amber-250/60 glow-gold hover:-translate-y-1 transition-all duration-300 flex items-center justify-between cursor-pointer group relative overflow-hidden h-full min-h-[110px]"
+                                  >
+                                    {/* Decorative gold background gradient flare */}
+                                    <div className="absolute right-0 top-0 w-24 h-24 bg-amber-100/30 rounded-full blur-xl pointer-events-none -mr-8 -mt-8 transition-all group-hover:scale-125"></div>
+                                    
+                                    <div className="flex items-center gap-4 relative z-10">
+                                      <span className="w-14 h-14 rounded-2xl bg-amber-100/50 group-hover:bg-amber-200/60 text-3xl flex items-center justify-center transition duration-300 ring-4 ring-amber-50">
+                                        {merchant.merchant_type === 'restaurant' ? '🍔' : '🛒'}
+                                      </span>
+                                      <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                          <h4 className="text-sm font-black text-slate-850 group-hover:text-amber-700 transition">
+                                            {merchant.shop_name || merchant.name}
+                                          </h4>
+                                          <span className="text-[9px] font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full uppercase tracking-wider scale-95 origin-left">
+                                            แนะนำ ⭐
+                                          </span>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-400 font-semibold">
+                                          <span className={merchant.merchant_type === 'restaurant' ? 'text-indigo-650' : 'text-amber-655'}>
+                                            {merchant.merchant_type === 'restaurant' ? '🍴 ร้านอาหาร' : '🛍️ มินิมาร์ท'}
+                                          </span>
+                                          <span>•</span>
+                                          <span className="text-amber-500">⭐ 4.9</span>
+                                          <span>•</span>
+                                          <span>⏳ 10-20 นาที (ส่งไว)</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <span className="text-xs text-amber-600 group-hover:text-amber-700 group-hover:translate-x-1.5 transition-all duration-300 font-black shrink-0 relative z-10">
+                                      สั่งเลย →
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
+                              ))}
                             </div>
-                            <span className="text-xs text-slate-400 group-hover:text-primary group-hover:translate-x-1.5 transition-all duration-300 font-bold shrink-0">
-                              สั่งซื้อเลย →
-                            </span>
                           </div>
-                        ))}
+
+                          {/* Right Navigation Arrow */}
+                          {recommended.length > (isMobile ? 1 : 2) && (
+                            <button
+                              type="button"
+                              onClick={nextSlide}
+                              className="absolute -right-4 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/90 border border-slate-100 shadow-md hover:bg-white text-slate-600 hover:text-slate-900 flex items-center justify-center text-xs font-bold transition-all opacity-0 group-hover/carousel:opacity-100 hover:scale-105 active:scale-95 cursor-pointer"
+                              title="ถัดไป"
+                            >
+                              ❯
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Page Indicator Dots */}
+                        {recommended.length > (isMobile ? 1 : 2) && (
+                          <div className="flex justify-center gap-1.5 pt-2">
+                            {Array.from({ length: (isMobile ? recommended.length : recommended.length - 1) }).map((_, idx) => (
+                              <button
+                                type="button"
+                                key={idx}
+                                onClick={() => setCarouselIndex(idx)}
+                                className={`w-2 h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                                  carouselIndex === idx ? 'bg-amber-500 w-4' : 'bg-slate-200'
+                                }`}
+                                title={`หน้า ${idx + 1}`}
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
+
+                    {/* 2. All Campus Shops Section */}
+                    <div className="space-y-4">
+                      <h3 className="text-base font-extrabold text-slate-800 flex items-center gap-2">
+                        <span>🏪</span> ร้านค้าทั้งหมดในวิทยาเขต (All Campus Shops)
+                      </h3>
+                      {merchants.length === 0 ? (
+                        <div className="bg-white rounded-3xl p-8 border border-slate-100 text-center text-xs text-slate-400">
+                          ยังไม่มีร้านค้าในระบบตอนนี้
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {merchants.map((merchant) => {
+                            const isRecommended = merchant.is_partner === true;
+                            return (
+                              <div 
+                                key={merchant.id} 
+                                onClick={() => {
+                                  setSelectedMerchant(merchant);
+                                  fetchSelectedMerchantProducts(merchant.id);
+                                }}
+                                className={`bg-white rounded-3xl p-6 border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-between cursor-pointer group ${
+                                  isRecommended ? 'border-amber-100 hover:border-amber-250 bg-amber-50/5' : 'border-slate-100/80 hover:border-slate-200'
+                                }`}
+                              >
+                                <div className="flex items-center gap-4">
+                                  <span className={`w-14 h-14 rounded-2xl text-3xl flex items-center justify-center transition duration-300 ${
+                                    isRecommended ? 'bg-amber-100/40 group-hover:bg-amber-100/70' : 'bg-primary-light/50 group-hover:bg-primary-light'
+                                  }`}>
+                                    {merchant.merchant_type === 'restaurant' ? '🍔' : '🛒'}
+                                  </span>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <h4 className="text-sm font-black text-slate-800 group-hover:text-primary transition">
+                                        {merchant.shop_name || merchant.name}
+                                      </h4>
+                                      {isRecommended && (
+                                        <span className="text-[8px] font-extrabold text-amber-700 bg-amber-100/80 px-1.5 py-0.2 rounded uppercase scale-90">
+                                          แนะนำ
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-400 font-semibold">
+                                      <span className={merchant.merchant_type === 'restaurant' ? 'text-indigo-650' : 'text-amber-655'}>
+                                        {merchant.merchant_type === 'restaurant' ? '🍴 ร้านอาหาร' : '🛍️ มินิมาร์ท'}
+                                      </span>
+                                      <span>•</span>
+                                      <span className="text-amber-500">⭐ 4.8</span>
+                                      <span>•</span>
+                                      <span>⏳ 15-25 นาที</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <span className="text-xs text-slate-400 group-hover:text-primary group-hover:translate-x-1.5 transition-all duration-300 font-bold shrink-0">
+                                  สั่งซื้อเลย →
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-4 animate-fade-in">
@@ -946,7 +1102,7 @@ export default function Home() {
                 
                 {/* Checkout Cart Container */}
                 {cart.length > 0 && (
-                  <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-md space-y-4 animate-slide-up">
+                  <div id="checkout-cart" className="bg-white rounded-3xl p-6 border border-slate-100 shadow-md space-y-4 animate-slide-up scroll-mt-20">
                     <h3 className="text-sm font-black text-slate-850 pb-2 border-b border-slate-100">
                       🛒 ตะกร้าสินค้าของคุณ ({selectedMerchant?.shop_name || selectedMerchant?.name})
                     </h3>
@@ -1090,6 +1246,27 @@ export default function Home() {
               </div>
 
             </div>
+
+            {/* Floating Mobile Cart Bar */}
+            {cart.length > 0 && (
+              <div className="lg:hidden fixed bottom-6 left-4 right-4 z-40 animate-slide-up">
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('checkout-cart')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="w-full bg-primary hover:bg-primary-hover text-white py-3.5 px-6 rounded-2xl shadow-xl flex justify-between items-center font-bold text-sm cursor-pointer border border-blue-500 hover:scale-[1.02] active:scale-95 transition-all duration-200"
+                >
+                  <div className="flex items-center gap-2">
+                    <span>🛒</span>
+                    <span>ตะกร้าสินค้า ({cart.reduce((sum, item) => sum + item.quantity, 0)} รายการ)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 font-black">
+                    <span>฿{Math.max(0, cart.reduce((sum, item) => sum + item.price * item.quantity, 0) - (activePromo ? activePromo.discount_amount : 0)) + 15}</span>
+                    <span>❯</span>
+                  </div>
+                </button>
+              </div>
+            )}
+
           </div>
         )}
 
