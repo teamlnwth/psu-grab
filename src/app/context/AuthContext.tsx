@@ -165,9 +165,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: data.email,
           phone: data.phone,
           studentId: data.student_id || undefined,
-          role: data.role as any,
+          role: data.role as User['role'],
           shopName: data.shop_name || undefined,
-          merchantType: data.merchant_type as any
+          merchantType: data.merchant_type as User['merchantType']
         };
 
         localStorage.setItem('psu_grab_session', JSON.stringify(safeUser));
@@ -176,7 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         return { success: false, error: 'อีเมล/รหัสนักศึกษา หรือรหัสผ่านไม่ถูก' };
       }
-    } catch (e) {
+    } catch {
       return { success: false, error: 'ล็อกอินไม่ได้ ลองใหม่' };
     }
   };
@@ -225,7 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       return { success: true };
-    } catch (e) {
+    } catch {
       return { success: false, error: 'สมัครไม่ได้ ลองใหม่อีกที' };
     }
   };
