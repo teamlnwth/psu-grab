@@ -237,6 +237,26 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
     }
   };
 
+  const handleAdminDeleteMerchant = async (merchantId: string, shopName: string) => {
+    if (!confirm(`⚠️ ยืนยันลบร้าน "${shopName}" และบัญชีร้านค้านี้ออกจากระบบ?\n\nข้อมูลสินค้าและออเดอร์ที่เกี่ยวข้องจะถูกลบทั้งหมด`)) return;
+    try {
+      // ลบสินค้าของร้านค้า
+      await supabase.from('products').delete().eq('merchant_id', merchantId);
+      // ลบออเดอร์ที่เกี่ยวข้องกับร้านค้า
+      await supabase.from('orders').delete().eq('merchant_id', merchantId);
+      // ลบบัญชี profile ของร้านค้า
+      const { error } = await supabase.from('profiles').delete().eq('id', merchantId);
+      if (error) throw error;
+
+      setMessage(`ลบร้าน "${shopName}" และบัญชีร้านค้าออกจากระบบแล้ว`);
+      fetchMerchants();
+      fetchMerchantAverages();
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      alert(`ลบร้านค้าไม่ได้: ${err.message}`);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 py-2 animate-fade-in text-left">
       {/* Floating alert */}
@@ -501,16 +521,25 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                       </span>
                     </p>
                   </div>
-                  <button
-                    onClick={() => handleAdminTogglePartner(shop.id, !!shop.is_partner)}
-                    className={`px-3 py-2 text-[10px] font-black rounded-lg transition duration-200 cursor-pointer border ${
-                      shop.is_partner
-                        ? 'bg-rose-50 hover:bg-rose-100 text-rose-600 border-rose-200'
-                        : 'bg-primary-light hover:bg-primary-light/80 text-primary-dark border-primary/20'
-                    }`}
-                  >
-                    {shop.is_partner ? 'ยกเลิกแนะนำ' : 'ตั้งเป็นร้านแนะนำ'}
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => handleAdminTogglePartner(shop.id, !!shop.is_partner)}
+                      className={`px-3 py-2 text-[10px] font-black rounded-lg transition duration-200 cursor-pointer border ${
+                        shop.is_partner
+                          ? 'bg-rose-50 hover:bg-rose-100 text-rose-600 border-rose-200'
+                          : 'bg-primary-light hover:bg-primary-light/80 text-primary-dark border-primary/20'
+                      }`}
+                    >
+                      {shop.is_partner ? 'ยกเลิกแนะนำ' : 'ตั้งเป็นร้านแนะนำ'}
+                    </button>
+                    <button
+                      onClick={() => handleAdminDeleteMerchant(shop.id, shop.shop_name || shop.name)}
+                      className="px-3 py-2 text-[10px] font-black rounded-lg transition duration-200 cursor-pointer border bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
+                      title="ลบร้านค้าและบัญชี"
+                    >
+                      🗑️ ลบร้านค้า
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
