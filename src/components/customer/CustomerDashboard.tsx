@@ -1367,7 +1367,7 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
 
       {/* Success Animation Overlay — Premium Design (Portal to body) */}
       {typeof document !== 'undefined' && showSuccessOverlay && createPortal(
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowSuccessOverlay(false)}>
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowSuccessOverlay(false)}>
           <div className="max-w-sm w-full bg-white rounded-[32px] relative overflow-hidden shadow-2xl animate-pop-in border border-slate-100/50" onClick={(e) => e.stopPropagation()}>
             {/* Confetti */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
