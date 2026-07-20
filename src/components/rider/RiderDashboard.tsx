@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../app/supabase';
 import { User, Order } from '../../types';
 
@@ -19,12 +19,12 @@ export default function RiderDashboard({ user }: RiderDashboardProps) {
   const [riderRatingCount, setRiderRatingCount] = useState<number>(0);
 
   // Load initial data
-  const fetchRiderJobs = async () => {
+  const fetchRiderJobs = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
-        .or('status.eq.calling_rider,status.eq.delivering')
+        .or('status.eq.finding_rider,status.eq.pending,status.eq.preparing,status.eq.delivering')
         .order('created_at', { ascending: false });
       if (error) throw error;
 
@@ -34,9 +34,9 @@ export default function RiderDashboard({ user }: RiderDashboardProps) {
     } catch (err) {
       console.error('Failed to fetch rider jobs', err);
     }
-  };
+  }, [user.id]);
 
-  const fetchRiderHistory = async () => {
+  const fetchRiderHistory = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('orders')
@@ -52,9 +52,9 @@ export default function RiderDashboard({ user }: RiderDashboardProps) {
     } catch (err) {
       console.error('Failed to fetch history', err);
     }
-  };
+  }, [user.id]);
 
-  const fetchRiderRating = async () => {
+  const fetchRiderRating = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('orders')
@@ -74,7 +74,7 @@ export default function RiderDashboard({ user }: RiderDashboardProps) {
     } catch (err) {
       console.error('Failed to fetch rating', err);
     }
-  };
+  }, [user.id]);
 
   useEffect(() => {
     fetchRiderJobs();
@@ -93,7 +93,7 @@ export default function RiderDashboard({ user }: RiderDashboardProps) {
     return () => {
       supabase.removeChannel(ordersChannel);
     };
-  }, []);
+  }, [fetchRiderJobs, fetchRiderHistory, fetchRiderRating]);
 
   // Handlers
   const handleAcceptJob = async (orderId: string, items: string) => {
@@ -103,13 +103,13 @@ export default function RiderDashboard({ user }: RiderDashboardProps) {
         .update({
           rider_id: user.id,
           rider_name: user.name,
-          status: 'delivering',
+          status: 'pending',
         })
         .eq('id', orderId);
 
       if (error) throw error;
 
-      setMessage(`รับออเดอร์ "${items}" สำเร็จ! เริ่มจัดส่งได้เลย 🏍️💨`);
+      setMessage(`รับออเดอร์ "${items}" สำเร็จ! ส่งรายการสินค้าให้ร้านค้าเรียบร้อยแล้ว 🛵🍳`);
       fetchRiderJobs();
       fetchRiderHistory();
       setTimeout(() => setMessage(null), 3000);
@@ -147,8 +147,8 @@ export default function RiderDashboard({ user }: RiderDashboardProps) {
   };
 
   // Divide jobs: current active delivery vs other requests
-  const activeJob = riderJobs.find((o) => o.rider_id === user.id && o.status === 'delivering');
-  const availableRequests = riderJobs.filter((o) => !o.rider_id && o.status === 'calling_rider');
+  const activeJob = riderJobs.find((o) => o.rider_id === user.id && o.status !== 'completed');
+  const availableRequests = riderJobs.filter((o) => !o.rider_id && o.status === 'finding_rider');
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 py-2 animate-fade-in text-left">
@@ -231,6 +231,15 @@ export default function RiderDashboard({ user }: RiderDashboardProps) {
               </span>
             </div>
 
+            {/* Status indicator banner */}
+            <div className="p-3.5 rounded-2xl text-xs font-black flex items-center gap-2 border bg-amber-50 text-amber-700 border-amber-200">
+              <span>
+                {activeJob.status === 'pending' && '⏳ รับงานสำเร็จแล้ว! ส่งออเดอร์ให้ร้านค้าเรียบร้อย (รอร้านค้ารับออเดอร์)'}
+                {activeJob.status === 'preparing' && '🍳 ร้านค้ากำลังจัดเตรียมสินค้า/ปรุงอาหาร...'}
+                {activeJob.status === 'delivering' && '✅ ร้านค้าเตรียมสินค้าเสร็จแล้ว! กำลังนำส่งให้ลูกค้า'}
+              </span>
+            </div>
+
             <div className="p-4 bg-slate-50 border border-slate-200/50 rounded-2xl text-xs space-y-3">
               <div className="flex justify-between font-bold">
                 <span className="text-slate-500">ออเดอร์หมายเลข</span>
@@ -286,12 +295,21 @@ export default function RiderDashboard({ user }: RiderDashboardProps) {
               >
                 📞 ติดต่อลูกค้า
               </a>
-              <button
-                onClick={() => handleCompleteJob(activeJob.id, activeJob.items)}
-                className="flex-1 py-3 bg-primary hover:bg-primary-hover text-white text-xs font-black rounded-xl transition duration-300 shadow cursor-pointer text-center active:scale-95 btn-scale"
-              >
-                จัดส่งสินค้าถึงที่หมายแล้ว ✓
-              </button>
+              {activeJob.status === 'delivering' ? (
+                <button
+                  onClick={() => handleCompleteJob(activeJob.id, activeJob.items)}
+                  className="flex-1 py-3 bg-primary hover:bg-primary-hover text-white text-xs font-black rounded-xl transition duration-300 shadow cursor-pointer text-center active:scale-95 btn-scale"
+                >
+                  จัดส่งสินค้าถึงที่หมายแล้ว ✓
+                </button>
+              ) : (
+                <button
+                  disabled
+                  className="flex-1 py-3 bg-slate-200 text-slate-400 text-xs font-black rounded-xl text-center cursor-not-allowed"
+                >
+                  ⏳ รอร้านค้าจัดเตรียมสินค้าให้เสร็จ...
+                </button>
+              )}
             </div>
           </div>
         )}

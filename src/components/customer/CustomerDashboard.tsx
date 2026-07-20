@@ -333,7 +333,7 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
           customer_id: user.id,
           customer_name: user.name,
           merchant_id: selectedMerchant.id,
-          merchant_name: selectedMerchant.shopName || selectedMerchant.name,
+          merchant_name: selectedMerchant.shop_name || selectedMerchant.shopName || selectedMerchant.name,
           items: itemsText + (activePromo ? ` (ใช้ส่วนลด ${activePromo.code}: -฿${discount})` : ''),
           total_price: total,
           dest: deliveryDest.trim(),
@@ -524,8 +524,8 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
             {customerOrders
               .filter((o) => o.status !== 'completed')
               .map((order) => {
-                const statusSteps = ['pending', 'preparing', 'calling_rider', 'delivering'];
-                const stepNames = ['รับออเดอร์', 'กำลังทำ', 'เรียกไรเดอร์', 'กำลังส่ง'];
+                const statusSteps = ['finding_rider', 'pending', 'preparing', 'delivering'];
+                const stepNames = ['หาไรเดอร์', 'ส่งร้านค้า', 'กำลังทำ', 'กำลังส่ง'];
                 const currentStepIndex = statusSteps.indexOf(order.status);
 
                 return (
@@ -538,9 +538,9 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
                     <div className="relative z-10 flex justify-between items-start gap-4">
                       <div className="space-y-1 text-left">
                         <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100/50">
-                          🛵 {order.status === 'pending' && 'รอร้านรับออเดอร์'}
-                          {order.status === 'preparing' && 'กำลังจัดปรุง'}
-                          {order.status === 'calling_rider' && 'กำลังหาคนส่ง'}
+                          🛵 {order.status === 'finding_rider' && 'กำลังหาไรเดอร์'}
+                          {order.status === 'pending' && 'ได้ไรเดอร์แล้ว (รอร้านรับ)'}
+                          {order.status === 'preparing' && 'ร้านกำลังจัดปรุง'}
                           {order.status === 'delivering' && 'กำลังเดินทางส่ง'}
                         </span>
                         <h4 className="text-sm font-black text-slate-800 pt-1">
@@ -1508,10 +1508,11 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
 
         const steps = [
           {
-            title: 'กำลังจับคู่ไรเดอร์',
-            desc: order.status === 'finding_rider'
-              ? 'ระบบกำลังหาไรเดอร์ที่พร้อมรับงานให้คุณ...'
-              : `ไรเดอร์ ${order.rider_name || 'พาร์ทเนอร์'} รับงานแล้ว`,
+            title: 'กำลังจัดหาไรเดอร์',
+            desc:
+              order.status === 'finding_rider'
+                ? 'ระบบกำลังหาไรเดอร์ที่พร้อมรับงานให้คุณ...'
+                : `ไรเดอร์คุณ ${order.rider_name || 'พาร์ทเนอร์'} รับงานแล้ว!`,
             emoji: '🛵',
             isActive: true,
             isCurrent: order.status === 'finding_rider',
@@ -1520,7 +1521,7 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
             title: 'ร้านค้ารับออเดอร์ / เตรียมของ',
             desc:
               order.status === 'pending'
-                ? 'รอร้านค้ารับออเดอร์และเตรียมของ...'
+                ? 'ออเดอร์ถูกส่งไปยังร้านค้าแล้ว รอร้านค้ารับออเดอร์...'
                 : 'ครัวได้รับออเดอร์แล้ว กำลังจัดเตรียมสินค้า...',
             emoji: '🍳',
             isActive:

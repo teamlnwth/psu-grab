@@ -125,7 +125,7 @@ export default function MerchantDashboard({ user }: MerchantDashboardProps) {
 
   const handleMerchantUpdateStatus = async (
     orderId: string,
-    nextStatus: 'preparing' | 'calling_rider',
+    nextStatus: 'preparing' | 'calling_rider' | 'delivering',
     items: string
   ) => {
     try {
@@ -135,7 +135,7 @@ export default function MerchantDashboard({ user }: MerchantDashboardProps) {
       setMessage(
         nextStatus === 'preparing'
           ? `รับออเดอร์ "${items}" แล้ว`
-          : `เตรียมของเสร็จ! เรียกไรเดอร์มารับ 🛵`
+          : `จัดเตรียมเสร็จสิ้น! ให้ไรเดอร์นำส่งต่อ 🛵💨`
       );
       fetchMerchantOrders();
       setTimeout(() => setMessage(null), 3000);
@@ -332,7 +332,8 @@ export default function MerchantDashboard({ user }: MerchantDashboardProps) {
                     <h4 className="text-sm sm:text-base font-black text-slate-850 pt-0.5">{ord.items}</h4>
                     <p className="text-[10.5px] text-slate-500">
                       ยอดสุทธิของร้าน: <b className="text-slate-800">฿{ord.total_price - 15}</b> • ลูกค้า:{' '}
-                      <b className="text-slate-800">คุณ {ord.customer_name}</b>
+                      <b className="text-slate-800">คุณ {ord.customer_name}</b> • ไรเดอร์:{' '}
+                      <b className="text-primary-dark">คุณ {ord.rider_name || 'พาร์ทเนอร์'}</b>
                     </p>
                   </div>
 
@@ -348,17 +349,11 @@ export default function MerchantDashboard({ user }: MerchantDashboardProps) {
                     )}
                     {ord.status === 'preparing' && (
                       <button
-                        onClick={() => handleMerchantUpdateStatus(ord.id, 'calling_rider', ord.items)}
+                        onClick={() => handleMerchantUpdateStatus(ord.id, 'delivering', ord.items)}
                         className="w-full md:w-auto px-4.5 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-black rounded-xl transition duration-300 cursor-pointer shadow shadow-primary/10 btn-scale active:scale-95"
                       >
-                        จัดเตรียมเสร็จสิ้น (เรียกไรเดอร์)
+                        จัดเตรียมเสร็จสิ้น (ให้ไรเดอร์นำส่ง)
                       </button>
-                    )}
-                    {ord.status === 'calling_rider' && (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-black text-primary-dark bg-primary-light px-3 py-2.5 rounded-xl border border-primary/20 animate-pulse">
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span>
-                        ระบบกำลังจัดหาไรเดอร์มารับของ...
-                      </span>
                     )}
                     {ord.status === 'delivering' && (
                       <span className="inline-flex items-center gap-1.5 text-xs font-black text-secondary bg-secondary-light px-3 py-2.5 rounded-xl border border-secondary/10">
