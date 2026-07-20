@@ -145,3 +145,25 @@ body {
 .animate-scooter-ride {
   animation: scooterRide 3.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
+
+/* Success checkmark bounce animation */
+@keyframes successCheck {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.animate-success-check {
+  animation: successCheck 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}

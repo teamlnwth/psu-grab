@@ -31,6 +31,7 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
   const [promoError, setPromoError] = useState<string | null>(null);
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
+  const [lastOrderInfo, setLastOrderInfo] = useState<{ merchantName: string; items: typeof cart; total: number; dest: string; discount: number } | null>(null);
   const [isTrackerCollapsed, setIsTrackerCollapsed] = useState(false);
   const [isOrderBreakdownOpen, setIsOrderBreakdownOpen] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -206,10 +207,10 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
         .eq('merchant_id', merchantId)
         .not('shop_rating', 'is', null)
         .order('created_at', { ascending: false });
-      if (error) throw error;
-      setSelectedMerchantReviews(data || []);
-    } catch (err) {
-      console.error('Failed to fetch reviews', err);
+      if (error || !data) return;
+      setSelectedMerchantReviews(data);
+    } catch {
+      // ยังไม่มีรีวิว — ข้ามไป
     }
   };
 
@@ -342,6 +343,14 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
 
       if (error) throw error;
 
+      const orderInfo = {
+        merchantName: selectedMerchant.shop_name || selectedMerchant.name,
+        items: [...cart],
+        total,
+        dest: deliveryDest.trim(),
+        discount,
+      };
+      setLastOrderInfo(orderInfo);
       setCart([]);
       setDeliveryDest('');
       setSelectedMerchant(null);
@@ -350,7 +359,7 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
       setShowSuccessOverlay(true);
       setIsTrackerCollapsed(false);
       fetchCustomerOrders();
-      setTimeout(() => setShowSuccessOverlay(false), 4000);
+      setTimeout(() => setShowSuccessOverlay(false), 6000);
     } catch (err: any) {
       alert(`สั่งไม่ได้: ${err.message}`);
     }
@@ -1356,17 +1365,17 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
         initialCoords={selectedPinCoords}
       />
 
-      {/* Success Animation Overlay */}
+      {/* Success Animation Overlay — Premium Design */}
       {showSuccessOverlay && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="max-w-md w-full bg-white rounded-[32px] p-8 text-center relative overflow-hidden shadow-2xl animate-pop-in border border-slate-100/50">
-            {/* Confetti Container */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              {Array.from({ length: 45 }).map((_, i) => {
-                const colors = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#EC4899', '#8B5CF6'];
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowSuccessOverlay(false)}>
+          <div className="max-w-sm w-full bg-white rounded-[32px] relative overflow-hidden shadow-2xl animate-pop-in border border-slate-100/50" onClick={(e) => e.stopPropagation()}>
+            {/* Confetti */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+              {Array.from({ length: 50 }).map((_, i) => {
+                const colors = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#EC4899', '#8B5CF6', '#06B6D4', '#F97316'];
                 const randomLeft = Math.random() * 100;
-                const randomDelay = Math.random() * 1.5;
-                const randomSize = Math.random() * 8 + 6;
+                const randomDelay = Math.random() * 2;
+                const randomSize = Math.random() * 8 + 4;
                 const randomColor = colors[Math.floor(Math.random() * colors.length)];
                 return (
                   <div
@@ -1385,33 +1394,108 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
               })}
             </div>
 
-            {/* Checkmark Graphic */}
-            <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-100 shadow-md ring-8 ring-emerald-50/50 animate-pulse">
-              <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
+            {/* Top gradient banner */}
+            <div className="relative bg-gradient-to-br from-primary via-emerald-500 to-teal-500 px-6 pt-8 pb-10 text-center text-white">
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute top-2 left-4 text-4xl animate-bounce" style={{ animationDelay: '0.1s' }}>🎉</div>
+                <div className="absolute top-6 right-6 text-3xl animate-bounce" style={{ animationDelay: '0.4s' }}>🎊</div>
+                <div className="absolute bottom-3 left-8 text-2xl animate-bounce" style={{ animationDelay: '0.7s' }}>✨</div>
+                <div className="absolute bottom-2 right-4 text-3xl animate-bounce" style={{ animationDelay: '0.3s' }}>🎉</div>
+              </div>
+              
+              {/* Checkmark */}
+              <div className="relative z-10">
+                <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-white/30 shadow-lg animate-success-check">
+                  <svg className="w-10 h-10 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-black mb-1 drop-shadow-sm">สั่งซื้อสำเร็จแล้ว! 🎉</h3>
+                <p className="text-[11px] font-semibold text-white/80">ออเดอร์ของคุณถูกส่งไปยังร้านค้าแล้ว</p>
+              </div>
             </div>
 
-            <h3 className="text-xl font-black text-slate-850 mb-2">สั่งซื้ออาหารสำเร็จ! 🎉</h3>
-            <p className="text-xs text-slate-500 font-semibold leading-relaxed mb-6">
-              ระบบได้รับคำสั่งซื้อของคุณแล้ว
-              <br />
-              ร้านค้านำส่งอัปเดต และไรเดอร์เตรียมเดินทาง 🛵
-            </p>
+            {/* Order Details */}
+            <div className="px-5 -mt-5 relative z-10">
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-lg overflow-hidden">
+                {/* Merchant name */}
+                {lastOrderInfo && (
+                  <>
+                    <div className="px-4 py-3 bg-slate-50/80 border-b border-slate-100 flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-lg shrink-0">🏪</div>
+                      <div className="text-left min-w-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ร้านค้า</p>
+                        <p className="text-xs font-black text-slate-800 truncate">{lastOrderInfo.merchantName}</p>
+                      </div>
+                    </div>
 
-            {/* Riding scooter track */}
-            <div className="h-10 bg-slate-50 rounded-2xl relative overflow-hidden flex items-center border border-slate-200/50 shadow-inner px-4 mt-4">
-              <span className="absolute left-3 text-[9px] font-bold text-slate-400">ร้านค้า</span>
-              <span className="absolute right-3 text-[9px] font-bold text-slate-400">ลูกค้า</span>
+                    {/* Items list */}
+                    <div className="px-4 py-3 space-y-1.5 border-b border-slate-100">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">รายการสั่งซื้อ</p>
+                      {lastOrderInfo.items.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-xs">
+                          <span className="text-slate-700 font-semibold truncate pr-2">{item.name} <span className="text-slate-400">×{item.quantity}</span></span>
+                          <span className="font-bold text-slate-800 shrink-0">฿{(item.price * item.quantity).toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
 
-              <div className="absolute top-1/2 -translate-y-1/2 left-0 w-[40px] text-xl animate-scooter-ride z-10">
-                🛵💨
+                    {/* Delivery & total */}
+                    <div className="px-4 py-3 space-y-2">
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-base">📍</span>
+                        <div className="text-left min-w-0">
+                          <p className="text-[10px] font-bold text-slate-400">ส่งที่</p>
+                          <p className="text-xs font-bold text-slate-700 truncate">{lastOrderInfo.dest}</p>
+                        </div>
+                      </div>
+                      {lastOrderInfo.discount > 0 && (
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-emerald-600 font-bold">🎟️ ส่วนลดคูปอง</span>
+                          <span className="text-emerald-600 font-black">-฿{lastOrderInfo.discount}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-slate-500 font-bold">🛵 ค่าจัดส่ง</span>
+                        <span className="text-slate-600 font-bold">฿15</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-dashed border-slate-200">
+                        <span className="text-xs font-black text-slate-800">ยอดรวมทั้งหมด</span>
+                        <span className="text-base font-black text-primary">฿{lastOrderInfo.total.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="w-full border-t-2 border-dashed border-slate-200 mt-0.5"></div>
+            </div>
+
+            {/* Scooter animation track */}
+            <div className="px-5 pt-4 pb-2">
+              <div className="h-9 bg-slate-50 rounded-xl relative overflow-hidden flex items-center border border-slate-200/50 shadow-inner px-3">
+                <span className="absolute left-2.5 text-[8px] font-bold text-slate-400">🏪 ร้านค้า</span>
+                <span className="absolute right-2.5 text-[8px] font-bold text-slate-400">📍 คุณ</span>
+                <div className="absolute top-1/2 -translate-y-1/2 left-0 w-[40px] text-lg animate-scooter-ride z-10">
+                  🛵💨
+                </div>
+                <div className="w-full border-t-2 border-dashed border-slate-200 mt-0.5"></div>
+              </div>
+            </div>
+
+            {/* Bottom actions */}
+            <div className="px-5 pb-5 pt-2 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => setShowSuccessOverlay(false)}
+                className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-black rounded-xl transition duration-300 shadow-md cursor-pointer text-center active:scale-95"
+              >
+                ✓ ติดตามสถานะออเดอร์
+              </button>
+              <p className="text-center text-[9px] text-slate-400 font-semibold">แตะที่ไหนก็ได้เพื่อปิด • หน้านี้จะปิดอัตโนมัติ</p>
             </div>
           </div>
         </div>
       )}
+
 
       {/* Grab-style floating order status tracker (Expanded / Collapsed sheets) — Portal to body */}
       {typeof document !== 'undefined' && createPortal((() => {
