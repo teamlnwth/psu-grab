@@ -1365,8 +1365,8 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
         initialCoords={selectedPinCoords}
       />
 
-      {/* Success Animation Overlay — Premium Design */}
-      {showSuccessOverlay && (
+      {/* Success Animation Overlay — Premium Design (Portal to body) */}
+      {typeof document !== 'undefined' && showSuccessOverlay && createPortal(
         <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowSuccessOverlay(false)}>
           <div className="max-w-sm w-full bg-white rounded-[32px] relative overflow-hidden shadow-2xl animate-pop-in border border-slate-100/50" onClick={(e) => e.stopPropagation()}>
             {/* Confetti */}
@@ -1494,7 +1494,7 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
 
       {/* Grab-style floating order status tracker (Expanded / Collapsed sheets) — Portal to body */}
