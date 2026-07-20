@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { supabase } from '../../app/supabase';
 import { User } from '../../app/context/AuthContext';
@@ -173,10 +174,10 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
         .from('orders')
         .select('merchant_id, shop_rating')
         .not('shop_rating', 'is', null);
-      if (error) throw error;
+      if (error || !data) return;
 
       const ratingsMap: Record<string, { sum: number; count: number }> = {};
-      data?.forEach((o: any) => {
+      data.forEach((o: any) => {
         if (!ratingsMap[o.merchant_id]) {
           ratingsMap[o.merchant_id] = { sum: 0, count: 0 };
         }
@@ -192,8 +193,8 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
         };
       });
       setMerchantRatings(averages);
-    } catch (err) {
-      console.error('Failed to fetch merchant rating averages', err);
+    } catch {
+      // ยังไม่มีข้อมูล rating — ข้ามไป
     }
   };
 
@@ -1412,8 +1413,8 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
         </div>
       )}
 
-      {/* Grab-style floating order status tracker (Expanded / Collapsed sheets) */}
-      {(() => {
+      {/* Grab-style floating order status tracker (Expanded / Collapsed sheets) — Portal to body */}
+      {typeof document !== 'undefined' && createPortal((() => {
         const activeOrders = customerOrders.filter((o) => o.status !== 'completed');
         if (activeOrders.length === 0) return null;
 
@@ -1462,7 +1463,7 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
                 touchAction: 'none',
                 transition: isDragging ? 'none' : undefined
               }}
-              className="fixed bottom-4 right-4 left-4 sm:left-auto sm:right-6 sm:bottom-6 sm:w-[320px] z-45 animate-slide-up"
+              className="fixed bottom-4 right-4 left-4 sm:left-auto sm:right-6 sm:bottom-6 sm:w-[320px] z-50 animate-slide-up"
             >
               <div
                 onPointerDown={handlePointerDown}
@@ -1544,7 +1545,7 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
               touchAction: 'none',
               transition: isDragging ? 'none' : undefined
             }}
-            className="fixed bottom-4 right-4 left-4 sm:left-auto sm:right-6 sm:bottom-6 sm:w-[320px] z-45 animate-slide-up p-0"
+            className="fixed bottom-4 right-4 left-4 sm:left-auto sm:right-6 sm:bottom-6 sm:w-[320px] z-50 animate-slide-up p-0"
           >
             <div className="bg-white rounded-[24px] shadow-2xl border border-slate-200/50 overflow-hidden flex flex-col max-h-[80vh] sm:max-h-none text-left">
               {/* Header */}
@@ -1813,7 +1814,7 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
             </div>
           </div>
         );
-      })()}
+      })(), document.body)}
     </div>
   );
 }
