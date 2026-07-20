@@ -59,7 +59,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-block mb-3 transition hover:scale-105">
             <span className="text-3xl font-black text-primary tracking-tight flex items-center gap-1.5 justify-center">
-              PSU Grab <span className="text-2xl">🛵</span>
+              CampusGo <span className="text-2xl">🛵</span>
             </span>
           </Link>
           <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">ล็อกอินเพื่อใช้งาน</p>

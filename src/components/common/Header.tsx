@@ -15,7 +15,7 @@ export default function Header({ user, logout }: HeaderProps) {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 sm:py-4 flex justify-between items-center">
         <Link href="/" className="flex items-center gap-1.5 group">
           <span className="text-lg sm:text-2xl font-black text-primary tracking-tight flex items-center gap-1.5 hover:scale-[1.02] transition-all duration-200 shrink-0">
-            PSU Grab <span className="text-sm sm:text-xl transform group-hover:translate-x-0.5 transition-transform">🛵</span>
+            CampusGo <span className="text-sm sm:text-xl transform group-hover:translate-x-0.5 transition-transform">🛵</span>
           </span>
         </Link>
 

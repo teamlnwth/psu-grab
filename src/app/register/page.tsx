@@ -95,7 +95,7 @@ export default function RegisterPage() {
         <div className="p-8 pb-4 text-center">
           <Link href="/" className="inline-block mb-2 transition hover:scale-105">
             <span className="text-3xl font-black text-primary tracking-tight flex items-center gap-1.5 justify-center">
-              PSU Grab <span className="text-2xl">🛵</span>
+              CampusGo <span className="text-2xl">🛵</span>
             </span>
           </Link>
           <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-5">สมัครสมาชิกใหม่</p>

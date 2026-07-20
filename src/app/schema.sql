@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     items TEXT NOT NULL, -- JSON string or text describing items
     total_price DOUBLE PRECISION NOT NULL,
     dest TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('pending', 'preparing', 'calling_rider', 'delivering', 'completed')),
+    status TEXT NOT NULL CHECK (status IN ('finding_rider', 'pending', 'preparing', 'calling_rider', 'delivering', 'completed')),
     shop_rating INTEGER,
     shop_review TEXT,
     rider_rating INTEGER,

@@ -42,7 +42,7 @@ export interface Order {
   items: string;
   total_price: number;
   dest: string;
-  status: 'pending' | 'preparing' | 'calling_rider' | 'delivering' | 'completed';
+  status: 'finding_rider' | 'pending' | 'preparing' | 'calling_rider' | 'delivering' | 'completed';
   shop_rating: number | null;
   shop_review: string | null;
   rider_rating: number | null;

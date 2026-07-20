@@ -337,7 +337,7 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
           items: itemsText + (activePromo ? ` (ใช้ส่วนลด ${activePromo.code}: -฿${discount})` : ''),
           total_price: total,
           dest: deliveryDest.trim(),
-          status: 'pending',
+          status: 'finding_rider',
         },
       ]);
 
@@ -1030,7 +1030,7 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
                             ? rev.customer_name.charAt(0) +
                               '***' +
                               rev.customer_name.charAt(rev.customer_name.length - 1)
-                            : 'ผู้ใช้ PSU Grab';
+                            : 'ผู้ใช้ CampusGo';
                           return (
                             <div key={rev.id} className="py-4 space-y-1 text-xs">
                               <div className="flex justify-between items-center">
@@ -1503,30 +1503,31 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
         if (activeOrders.length === 0) return null;
 
         const order = activeOrders[0];
-        const statusSteps = ['pending', 'preparing', 'calling_rider', 'delivering'];
+        const statusSteps = ['finding_rider', 'pending', 'preparing', 'delivering'];
         const currentStepIndex = statusSteps.indexOf(order.status);
 
         const steps = [
           {
-            title: 'รับออเดอร์แล้ว / อยู่ที่ครัว',
+            title: 'กำลังจับคู่ไรเดอร์',
+            desc: order.status === 'finding_rider'
+              ? 'ระบบกำลังหาไรเดอร์ที่พร้อมรับงานให้คุณ...'
+              : `ไรเดอร์ ${order.rider_name || 'พาร์ทเนอร์'} รับงานแล้ว`,
+            emoji: '🛵',
+            isActive: true,
+            isCurrent: order.status === 'finding_rider',
+          },
+          {
+            title: 'ร้านค้ารับออเดอร์ / เตรียมของ',
             desc:
               order.status === 'pending'
-                ? 'รอร้านอาหารรับออเดอร์...'
-                : 'ครัวได้รับออเดอร์แล้ว กำลังจัดเตรียมอาหาร...',
+                ? 'รอร้านค้ารับออเดอร์และเตรียมของ...'
+                : 'ครัวได้รับออเดอร์แล้ว กำลังจัดเตรียมสินค้า...',
             emoji: '🍳',
             isActive:
               order.status === 'pending' ||
               order.status === 'preparing' ||
-              order.status === 'calling_rider' ||
               order.status === 'delivering',
             isCurrent: order.status === 'pending' || order.status === 'preparing',
-          },
-          {
-            title: 'กำลังรอไรเดอร์มารับของ',
-            desc: 'จัดเตรียมของเสร็จแล้ว กำลังจับคู่ไรเดอร์มารับ...',
-            emoji: '🛵',
-            isActive: order.status === 'calling_rider' || order.status === 'delivering',
-            isCurrent: order.status === 'calling_rider',
           },
           {
             title: 'ไรเดอร์กำลังไปส่ง',
@@ -1566,7 +1567,8 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
                   </span>
                   <span className="text-[12px] shrink-0">🛵</span>
                   <span className="truncate text-left font-black">
-                    ร้าน {order.merchant_name}: {order.status === 'pending' && 'รอส่ง'}
+                    ร้าน {order.merchant_name}: {order.status === 'finding_rider' && 'หาไรเดอร์...'}
+                    {order.status === 'pending' && 'รอร้านรับ'}
                     {order.status === 'preparing' && 'เตรียมสินค้า'}
                     {order.status === 'calling_rider' && 'ไรเดอร์ไปรับ'}
                     {order.status === 'delivering' && 'กำลังส่ง 💨'}
@@ -1641,7 +1643,7 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
                   <span className="text-lg">🛵</span>
                   <div className="text-left">
                     <h3 className="text-xs font-black text-slate-800">ติดตามสถานะจัดส่ง</h3>
-                    <p className="text-[8.5px] text-slate-400 font-bold uppercase tracking-wider">PSU Grab Express</p>
+                    <p className="text-[8.5px] text-slate-400 font-bold uppercase tracking-wider">CampusGo Express</p>
                   </div>
                 </div>
                 <button
@@ -1776,7 +1778,8 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
                     </div>
                   </div>
                   <span className="text-[6.5px] font-black text-emerald-700 bg-white border border-emerald-250 px-1 py-0.2 rounded shadow-sm whitespace-nowrap mt-0.5">
-                    {order.status === 'pending' && 'รอส่ง'}
+                    {order.status === 'finding_rider' && 'หาไรเดอร์'}
+                    {order.status === 'pending' && 'รอร้านรับ'}
                     {order.status === 'preparing' && 'เตรียมสินค้า'}
                     {order.status === 'calling_rider' && 'ไรเดอร์ไปรับ'}
                     {order.status === 'delivering' && 'กำลังไปส่ง 💨'}

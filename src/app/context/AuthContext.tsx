@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initAuth = async () => {
       try {
         // Load active session from localStorage
-        const session = localStorage.getItem('psu_grab_session');
+        const session = localStorage.getItem('campusgo_session');
         if (session) {
           setUser(JSON.parse(session));
         }
@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           },
           {
             id: '5',
-            name: 'ผู้ดูแลระบบ PSU Grab',
+            name: 'ผู้ดูแลระบบ CampusGo',
             email: 'admin@gmail.com',
             phone: '0800000000',
             student_id: null,
@@ -122,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const initialPromos = [
             { code: 'PSUNEW50', discount_amount: 50, description: 'ส่วนลด 50 บาท ต้อนรับนักศึกษาใหม่ ม.อ.' },
             { code: 'FREE15', discount_amount: 15, description: 'คูปองส่งฟรี ส่วนลด 15 บาทสำหรับจัดส่ง' },
-            { code: 'PSUGRAB10', discount_amount: 10, description: 'โค้ดส่วนลดทั่วไป 10 บาท ไม่มีขั้นต่ำ' }
+            { code: 'CAMPUSGO10', discount_amount: 10, description: 'โค้ดส่วนลดทั่วไป 10 บาท ไม่มีขั้นต่ำ' }
           ];
           await supabase.from('promo_codes').upsert(initialPromos, { onConflict: 'code' });
         }
@@ -170,7 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           merchantType: data.merchant_type as User['merchantType']
         };
 
-        localStorage.setItem('psu_grab_session', JSON.stringify(safeUser));
+        localStorage.setItem('campusgo_session', JSON.stringify(safeUser));
         setUser(safeUser);
         return { success: true };
       } else {
@@ -232,7 +232,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     try {
-      localStorage.removeItem('psu_grab_session');
+      localStorage.removeItem('campusgo_session');
       setUser(null);
     } catch (e) {
       console.error('Failed to clear session', e);

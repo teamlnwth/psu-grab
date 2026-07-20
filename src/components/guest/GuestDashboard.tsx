@@ -26,7 +26,7 @@ export default function GuestDashboard() {
           </span>
           <h1 className="text-3xl md:text-5xl font-black leading-tight tracking-tight">
             สะดวก รวดเร็ว <br className="hidden md:inline" />
-            เชื่อมโยงทุกมุม ม.อ. กับ <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-250 font-black">PSU Grab</span>
+            เชื่อมโยงทุกมุม ม.อ. กับ <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-250 font-black">CampusGo</span>
           </h1>
           <p className="text-emerald-50 text-sm md:text-base font-medium leading-relaxed max-w-lg">
             บริการเรียกรถเดินทางและสั่งซื้ออาหาร/สินค้าสะดวกซื้อจากร้านพาร์ทเนอร์ในวิทยาเขต จัดส่งโดยนักศึกษาไรเดอร์ ตลอด 24 ชั่วโมง
@@ -52,7 +52,7 @@ export default function GuestDashboard() {
           <div className="space-y-4">
             <div className="flex justify-between items-center text-left">
               <span className="text-xs font-extrabold text-primary bg-primary-light px-3 py-1 rounded-lg border border-primary/10">
-                PSU Grab App
+                CampusGo App
               </span>
               <span className="text-[11px] font-bold text-slate-400">ยินดีต้อนรับ</span>
             </div>
