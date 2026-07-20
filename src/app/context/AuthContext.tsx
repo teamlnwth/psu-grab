@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: 'admin',
             shop_name: null,
             merchant_type: null,
-            password: 'password123'
+            password: 'por012345'
           }
         ];
 

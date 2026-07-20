@@ -157,7 +157,7 @@ export default function LoginPage() {
             <span>💡</span> บัญชีทดสอบ:
           </h4>
           <div className="text-[10px] text-slate-500 space-y-1">
-            <p>• <b>แอดมิน:</b> admin@gmail.com (รหัส: password123)</p>
+
             <p>• <b>ลูกค้า:</b> somchai@gmail.com (รหัส: password123)</p>
             <p>• <b>ไรเดอร์:</b> somying@gmail.com (รหัส: password123)</p>
             <p>• <b>ร้านอาหาร:</b> krua_psu@gmail.com (รหัส: password123)</p>
