@@ -168,55 +168,55 @@ export default function MerchantDashboard({ user }: MerchantDashboardProps) {
       {/* Left Column: Store Profile & Add Product Form */}
       <div className="lg:col-span-4 space-y-6">
         {/* Store Profile Card */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/60 text-center space-y-4">
-          <div className="w-16 h-16 bg-secondary-light text-secondary rounded-full flex items-center justify-center mx-auto text-3xl font-bold border border-secondary/10 shadow-sm">
+        <div className="bg-white rounded-3xl p-6 shadow-xs border border-slate-200/80 text-center space-y-4">
+          <div className="w-16 h-16 bg-secondary-light text-secondary rounded-2xl flex items-center justify-center mx-auto text-3xl font-bold border border-secondary/20 shadow-xs">
             {user.merchantType === 'restaurant' ? '🍔' : '🛒'}
           </div>
           <div>
-            <span className="text-[10px] font-black text-secondary bg-secondary-light px-3 py-1 rounded-full uppercase tracking-wider border border-secondary/20">
+            <span className="text-xs font-semibold text-secondary-dark bg-secondary-light px-3 py-1 rounded-full border border-secondary/20">
               {user.merchantType === 'restaurant' ? 'ร้านอาหารพาร์ทเนอร์' : 'มินิมาร์ทพาร์ทเนอร์'}
             </span>
-            <h3 className="text-xl font-black text-slate-800 mt-3">{user.shopName}</h3>
-            <p className="text-xs text-slate-400 font-bold mt-1">ผู้จัดการร้าน: {user.name}</p>
+            <h3 className="text-xl font-bold text-slate-900 mt-3">{user.shopName}</h3>
+            <p className="text-xs text-slate-500 font-medium mt-1">ผู้จัดการร้าน: {user.name}</p>
           </div>
 
-          <div className="bg-slate-50 border border-slate-200/40 rounded-2xl p-4 text-left">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
-              รายได้การขายสะสม (ถอนเงินได้)
+          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 text-left">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+              รายได้การขายสะสม (ยอดโอนเข้าบัญชี)
             </span>
             <div className="flex justify-between items-baseline mt-1.5">
-              <span className="text-2xl font-black text-secondary">฿{merchantRevenue.toLocaleString()}</span>
+              <span className="text-2xl font-bold text-secondary">฿{merchantRevenue.toLocaleString()}</span>
               <button
                 onClick={handleWithdraw}
-                className="text-xs font-black text-secondary hover:underline cursor-pointer hover:text-secondary-hover"
+                className="text-xs font-bold text-secondary hover:underline cursor-pointer"
               >
-                ถอนเงิน →
+                ถอนเงินสด →
               </button>
             </div>
           </div>
         </div>
 
         {/* Add Product Form */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/60 space-y-4">
-          <h4 className="text-xs sm:text-sm font-black text-slate-800 uppercase tracking-wider pb-2 border-b border-slate-100">
-            ➕ เพิ่มรายการ {user.merchantType === 'restaurant' ? 'เมนูอาหาร' : 'สินค้ามินิมาร์ท'}
+        <div className="bg-white rounded-3xl p-6 shadow-xs border border-slate-200/80 space-y-4 text-left">
+          <h4 className="text-sm font-bold text-slate-900 pb-2 border-b border-slate-100 flex items-center gap-2">
+            <span>➕</span> เพิ่มรายการ {user.merchantType === 'restaurant' ? 'เมนูอาหาร' : 'สินค้ามินิมาร์ท'}
           </h4>
           <form onSubmit={handleAddProduct} className="space-y-4 text-xs font-sans">
             {/* Emoji Selector */}
             <div className="space-y-1.5 text-left">
-              <label className="block text-[10px] font-black text-slate-450 uppercase tracking-wide">
+              <label className="block text-xs font-semibold text-slate-600">
                 เลือกอิโมจิสินค้า
               </label>
-              <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded-2xl border border-slate-200/40 justify-start">
+              <div className="flex flex-wrap gap-1.5 p-2 bg-slate-50 rounded-2xl border border-slate-200/80">
                 {(user.merchantType === 'restaurant' ? REST_EMOJIS : MART_EMOJIS).map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
                     onClick={() => setSelectedEmoji(emoji)}
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all duration-200 hover:scale-110 cursor-pointer ${
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm transition-all cursor-pointer ${
                       selectedEmoji === emoji
-                        ? 'bg-secondary text-white font-bold scale-105 shadow-sm shadow-secondary/15'
-                        : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200/40'
+                        ? 'bg-secondary text-white font-bold scale-105 shadow-xs'
+                        : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
                     }`}
                   >
                     {emoji}
@@ -226,7 +226,7 @@ export default function MerchantDashboard({ user }: MerchantDashboardProps) {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-[10px] font-black text-slate-450 uppercase tracking-wide">ชื่อสินค้า / รายการเมนู</label>
+              <label className="block text-xs font-semibold text-slate-600">ชื่อสินค้า / รายการเมนู</label>
               <input
                 type="text"
                 value={newProductName}
@@ -241,7 +241,7 @@ export default function MerchantDashboard({ user }: MerchantDashboardProps) {
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-[10px] font-black text-slate-450 uppercase tracking-wide">ราคาจำหน่าย (บาท)</label>
+              <label className="block text-xs font-semibold text-slate-600">ราคาจำหน่าย (บาท)</label>
               <input
                 type="number"
                 value={newProductPrice}
@@ -254,7 +254,7 @@ export default function MerchantDashboard({ user }: MerchantDashboardProps) {
             </div>
             <button
               type="submit"
-              className="w-full py-3 bg-secondary hover:bg-secondary-hover text-white text-xs font-black rounded-xl transition duration-300 cursor-pointer shadow-md shadow-secondary/10 active:scale-95 btn-scale"
+              className="w-full py-3 bg-secondary hover:bg-secondary-hover text-white text-xs font-bold rounded-xl transition duration-200 cursor-pointer shadow-xs active:scale-95"
             >
               เพิ่มเข้าหน้าร้านพาร์ทเนอร์
             </button>

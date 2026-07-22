@@ -26,6 +26,8 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
   const [newMerchantPassword, setNewMerchantPassword] = useState('');
   const [merchantRatings, setMerchantRatings] = useState<Record<string, { avg: number; count: number }>>({});
 
+  const [adminOrders, setAdminOrders] = useState<any[]>([]);
+
   // Initial loads
   const fetchMerchants = async () => {
     try {
@@ -34,6 +36,16 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       setMerchants(data || []);
     } catch (err: any) {
       console.error('Failed to fetch merchants:', err.message || err);
+    }
+  };
+
+  const fetchAdminOrders = async () => {
+    try {
+      const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(15);
+      if (error) throw error;
+      setAdminOrders(data || []);
+    } catch (err: any) {
+      console.error('Failed to fetch admin orders:', err.message || err);
     }
   };
 
@@ -84,11 +96,13 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
     fetchMerchants();
     fetchPromoCodes();
     fetchMerchantAverages();
+    fetchAdminOrders();
 
     const ordersChannel = supabase
       .channel('admin-orders-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, (payload) => {
         fetchMerchantAverages();
+        fetchAdminOrders();
       })
       .subscribe();
 
@@ -542,6 +556,53 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* Real-time Order Monitoring (Food & Ride) */}
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/60 space-y-4">
+          <h3 className="text-xs sm:text-sm font-black text-slate-800 border-b border-slate-100 pb-3 flex justify-between items-center uppercase tracking-wider">
+            <span>📊 รายการบริการทั้งหมดในวิทยาเขต (Live Orders)</span>
+            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+              {adminOrders.length} รายการล่าสุด
+            </span>
+          </h3>
+
+          {adminOrders.length === 0 ? (
+            <p className="text-xs text-slate-400 py-8 text-center">ยังไม่มีรายการสั่งซื้อหรือเรียกรถในระบบ</p>
+          ) : (
+            <div className="divide-y divide-slate-100 max-h-[300px] overflow-y-auto">
+              {adminOrders.map((ord) => {
+                const isRide = ord.order_type === 'ride';
+                return (
+                  <div key={ord.id} className="py-3 flex justify-between items-center text-xs text-left">
+                    <div className="space-y-1 flex-1 pr-3">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[9.5px] font-black px-2 py-0.5 rounded border ${
+                          isRide ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+                        }`}>
+                          {isRide ? '🛵 เรียกรถ' : '🍔 อาหาร/มาร์ท'}
+                        </span>
+                        <span className="font-bold text-slate-800">{ord.merchant_name}</span>
+                        <span className="text-[10px] text-slate-400">#00{ord.id.substr(-4)}</span>
+                      </div>
+                      <p className="text-[10.5px] text-slate-500 font-semibold truncate max-w-[260px]">
+                        ลูกค้า: <b>คุณ {ord.customer_name}</b> • {ord.items}
+                      </p>
+                      {isRide && (
+                        <p className="text-[10px] text-emerald-600 font-bold">
+                          รับ: {ord.pickup_dest || 'จุดรับ'} ➔ ส่ง: {ord.dest}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-xs font-black text-slate-850 block">฿{ord.total_price}</span>
+                      <span className="text-[9.5px] font-bold text-slate-400 capitalize">{ord.status}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

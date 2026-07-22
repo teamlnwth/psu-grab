@@ -40,6 +40,11 @@ CREATE TABLE IF NOT EXISTS public.orders (
     shop_review TEXT,
     rider_rating INTEGER,
     rider_review TEXT,
+    order_type TEXT DEFAULT 'food', -- 'food' or 'ride'
+    pickup_dest TEXT, -- pickup location for rides
+    vehicle_type TEXT, -- 'motorbike', 'car', 'scooter'
+    vehicle_plate TEXT, -- e.g. 'กข 1234'
+    passenger_count INTEGER DEFAULT 1,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

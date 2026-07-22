@@ -120,71 +120,72 @@ export default function PromoModal({
               </div>
             ) : (
               <div className="space-y-3">
-                {promoCodes.map((promo) => (
-                  <div
-                    key={promo.code}
-                    onClick={() => {
-                      setPromoInput(promo.code);
-                      onSelectPromo(promo);
-                    }}
-                    className="bg-white border border-slate-150 rounded-2xl overflow-hidden shadow-sm hover:shadow hover:border-blue-200 transition-all duration-300 flex items-center min-h-[90px] relative cursor-pointer group text-left"
-                  >
-                    {/* Left Pane: Ticket Color Block */}
-                    <div className="w-20 bg-gradient-to-br from-blue-600 to-indigo-700 flex flex-col items-center justify-center text-white shrink-0 self-stretch select-none relative">
-                      <span className="text-2xl">🎟️</span>
-                      <span className="text-[8px] font-black tracking-widest uppercase opacity-75 mt-1">
-                        PROMO
-                      </span>
-                      {/* Dashed separator */}
-                      <div className="absolute right-0 top-0 bottom-0 border-r border-dashed border-white/30"></div>
-                    </div>
-
-                    {/* Ticket Circular Cutouts */}
-                    <div className="absolute left-[74px] -top-1.5 w-3 h-3 bg-white rounded-full border-b border-slate-200 z-10"></div>
-                    <div className="absolute left-[74px] -bottom-1.5 w-3 h-3 bg-white rounded-full border-t border-slate-200 z-10"></div>
-
-                    {/* Right Pane: Coupon Details */}
-                    <div className="flex-1 p-4 pr-12 text-left space-y-1 relative">
-                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                        <h5 className="font-black text-sm text-slate-800">
-                          ส่วนลด ฿{promo.discount_amount}
-                        </h5>
-                        <span className="text-[8px] font-black text-primary bg-primary-light border border-primary-light/40 px-1.5 py-0.5 rounded uppercase">
-                          {promo.code}
+                {promoCodes.map((promo) => {
+                  const isSelected = activePromo?.code === promo.code;
+                  return (
+                    <div
+                      key={promo.code}
+                      onClick={() => {
+                        setPromoInput(promo.code);
+                        onSelectPromo(promo);
+                      }}
+                      className={`relative bg-gradient-to-r from-slate-900 via-slate-850 to-indigo-950 rounded-2xl border text-white transition-all duration-300 flex items-center min-h-[90px] cursor-pointer group text-left overflow-hidden ${
+                        isSelected ? 'border-emerald-400 ring-2 ring-emerald-500/30' : 'border-slate-800 hover:border-slate-600'
+                      }`}
+                    >
+                      {/* Left Pane: Ticket Color Block */}
+                      <div className="w-20 bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600 flex flex-col items-center justify-center text-white shrink-0 self-stretch select-none relative p-2">
+                        <span className="text-xl font-black drop-shadow-sm group-hover:scale-110 transition duration-300">🎟️</span>
+                        <span className="text-[8px] font-black tracking-widest uppercase bg-black/20 px-1.5 py-0.5 rounded-full mt-1 border border-white/20">
+                          PROMO
                         </span>
+                        {/* Dashed separator */}
+                        <div className="absolute right-0 top-0 bottom-0 border-r-2 border-dashed border-white/30"></div>
                       </div>
-                      <p className="text-[10px] text-slate-400 font-semibold leading-tight">
-                        {promo.description || 'ใช้ส่วนลดสำหรับสินค้าในวิทยาเขต ม.อ.'}
-                      </p>
-                      <span className="text-[8px] text-slate-400 block pt-0.5 font-medium">
-                        ⏳ คูปองแนะนำพิเศษสำหรับสิทธิ์ล็อกอินนี้
-                      </span>
-                    </div>
 
-                    {/* Apply Radio Checkbox */}
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 shrink-0">
-                      <div
-                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                          activePromo?.code === promo.code
-                            ? 'border-blue-600 bg-primary text-white'
-                            : 'border-slate-300 group-hover:border-blue-400 bg-white'
-                        }`}
-                      >
-                        {activePromo?.code === promo.code && (
-                          <svg
-                            className="w-3 h-3"
-                            fill="none;;"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={4}
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
+                      {/* Ticket Circular Cutouts */}
+                      <div className="absolute left-[72px] -top-2 w-4 h-4 bg-white rounded-full border-b border-slate-300 z-10"></div>
+                      <div className="absolute left-[72px] -bottom-2 w-4 h-4 bg-white rounded-full border-t border-slate-300 z-10"></div>
+
+                      {/* Right Pane: Coupon Details */}
+                      <div className="flex-1 p-3.5 pl-5 text-left space-y-1 relative">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-black tracking-wider uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2 py-0.5 rounded">
+                            {promo.code}
+                          </span>
+                          {isSelected && (
+                            <span className="text-[8px] font-bold text-emerald-400 bg-emerald-950 px-1.5 py-0.5 rounded-full">
+                              ✓ เลือกอยู่
+                            </span>
+                          )}
+                        </div>
+                        <h5 className="font-black text-base text-white">
+                          ส่วนลด <span className="text-emerald-400">฿{promo.discount_amount}</span>
+                        </h5>
+                        <p className="text-[10.5px] text-slate-300 font-medium truncate max-w-[180px]">
+                          {promo.description || 'ใช้ส่วนลดสำหรับบริการในวิทยาเขต ม.อ.'}
+                        </p>
+                      </div>
+
+                      {/* Apply Checkbox */}
+                      <div className="pr-4 shrink-0">
+                        <div
+                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                            isSelected
+                              ? 'border-emerald-400 bg-emerald-500 text-white shadow-sm'
+                              : 'border-slate-600 bg-slate-800/80 group-hover:border-emerald-400'
+                          }`}
+                        >
+                          {isSelected && (
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

@@ -48,4 +48,11 @@ export interface Order {
   rider_rating: number | null;
   rider_review: string | null;
   created_at: string;
+
+  // Ride-hailing fields
+  order_type?: 'food' | 'ride';
+  pickup_dest?: string;
+  vehicle_type?: 'motorbike' | 'car' | 'scooter';
+  vehicle_plate?: string;
+  passenger_count?: number;
 }

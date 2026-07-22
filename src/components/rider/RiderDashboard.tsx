@@ -17,6 +17,7 @@ export default function RiderDashboard({ user }: RiderDashboardProps) {
   const [riderEarnings, setRiderEarnings] = useState<number>(0);
   const [riderRating, setRiderRating] = useState<number>(5);
   const [riderRatingCount, setRiderRatingCount] = useState<number>(0);
+  const [jobCategoryFilter, setJobCategoryFilter] = useState<'all' | 'food' | 'ride'>('all');
 
   // Load initial data
   const fetchRiderJobs = useCallback(async () => {
@@ -118,6 +119,30 @@ export default function RiderDashboard({ user }: RiderDashboardProps) {
     }
   };
 
+  const handleAcceptRideJob = async (job: Order) => {
+    try {
+      const vehiclePlate = 'ม.อ. ' + Math.floor(1000 + Math.random() * 9000);
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          rider_id: user.id,
+          rider_name: user.name,
+          vehicle_plate: vehiclePlate,
+          status: 'delivering',
+        })
+        .eq('id', job.id);
+
+      if (error) throw error;
+
+      setMessage(`ตอบรับงานรับส่งผู้โดยสารสำเร็จ! กำลังมุ่งหน้าไปรับคุณ ${job.customer_name} 🛵💨`);
+      fetchRiderJobs();
+      fetchRiderHistory();
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      alert(`รับงานเรียกรถไม่สำเร็จ: ${err.message}`);
+    }
+  };
+
   const handleCompleteJob = async (orderId: string, items: string) => {
     try {
       const { error } = await supabase
@@ -165,46 +190,46 @@ export default function RiderDashboard({ user }: RiderDashboardProps) {
       {/* Left Column: Rider profile & Earnings */}
       <div className="lg:col-span-4 space-y-6">
         {/* Rider profile info */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/60 text-center space-y-4">
-          <div className="w-16 h-16 bg-primary-light text-primary rounded-full flex items-center justify-center mx-auto text-3xl font-bold border border-primary/10 shadow-sm">
+        <div className="bg-white rounded-3xl p-6 shadow-xs border border-slate-200/80 text-center space-y-4">
+          <div className="w-16 h-16 bg-primary-light text-primary rounded-2xl flex items-center justify-center mx-auto text-3xl font-bold border border-primary/20 shadow-xs">
             🏍️
           </div>
           <div>
-            <span className="text-[10px] font-black text-primary-dark bg-primary-light px-3 py-1 rounded-full uppercase tracking-wider border border-primary/20">
-              ไรเดอร์นักศึกษา
+            <span className="text-xs font-semibold text-primary-dark bg-primary-light px-3 py-1 rounded-full border border-primary/20">
+              ไรเดอร์นักศึกษา ม.อ.
             </span>
-            <h3 className="text-xl font-black text-slate-800 mt-3">{user.name}</h3>
-            <p className="text-xs text-slate-450 font-bold mt-1">เบอร์ติดต่อไรเดอร์: {user.phone}</p>
+            <h3 className="text-xl font-bold text-slate-900 mt-3">{user.name}</h3>
+            <p className="text-xs text-slate-500 font-medium mt-1">เบอร์ติดต่อไรเดอร์: {user.phone}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3.5 pt-2">
-            <div className="bg-slate-50 border border-slate-200/40 rounded-2xl p-3 text-left">
-              <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wide block">
-                คะแนนดาวเฉลี่ย
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 text-left">
+              <span className="text-xs font-semibold text-slate-500 block">
+                ดาวเฉลี่ย
               </span>
-              <span className="text-lg font-black text-slate-800 mt-0.5 block">
-                ⭐ {riderRating} <span className="text-[10px] text-slate-400">({riderRatingCount})</span>
+              <span className="text-base font-bold text-slate-900 mt-0.5 block">
+                ⭐ {riderRating} <span className="text-xs text-slate-400">({riderRatingCount})</span>
               </span>
             </div>
-            <div className="bg-slate-50 border border-slate-200/40 rounded-2xl p-3 text-left">
-              <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wide block">
+            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 text-left">
+              <span className="text-xs font-semibold text-slate-500 block">
                 งานที่ส่งสำเร็จ
               </span>
-              <span className="text-lg font-black text-slate-800 mt-0.5 block">
+              <span className="text-base font-bold text-slate-900 mt-0.5 block">
                 {riderHistory.length} เที่ยว
               </span>
             </div>
           </div>
 
-          <div className="bg-[#FFFDF9] border border-amber-250 rounded-2xl p-4 text-left">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
-              กระเป๋าเงินไรเดอร์ (ค่าเที่ยวรอบส่ง)
+          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 text-left">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+              กระเป๋าเงินไรเดอร์ (ค่ารอบส่ง)
             </span>
             <div className="flex justify-between items-baseline mt-1.5">
-              <span className="text-2xl font-black text-primary-dark">฿{riderEarnings.toLocaleString()}</span>
+              <span className="text-2xl font-bold text-primary-dark">฿{riderEarnings.toLocaleString()}</span>
               <button
                 onClick={handleWithdrawEarnings}
-                className="text-xs font-black text-primary hover:underline cursor-pointer"
+                className="text-xs font-bold text-primary hover:underline cursor-pointer"
               >
                 ถอนเงินสด →
               </button>
@@ -217,44 +242,44 @@ export default function RiderDashboard({ user }: RiderDashboardProps) {
       <div className="lg:col-span-8 space-y-6">
         {/* Case 1: Active Assigned Job */}
         {activeJob && (
-          <div className="bg-white rounded-3xl p-6 shadow-md border border-primary/20 space-y-4 animate-slide-up">
+          <div className="bg-white rounded-3xl p-6 shadow-xs border border-primary/30 space-y-4 animate-slide-up text-left">
             <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-              <h3 className="text-xs sm:text-sm font-black text-slate-800 flex items-center gap-1.5 uppercase tracking-wider">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/65 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
                 </span>
-                งานจัดส่งที่กำลังดำเนินการ (Active Job)
+                <span>{activeJob.order_type === 'ride' ? '🛵 งานรับส่งผู้โดยสารที่กำลังดำเนินการ' : '🍔 งานจัดส่งสินค้าที่กำลังดำเนินการ'}</span>
               </h3>
-              <span className="text-[10px] font-black text-primary-dark bg-primary-light px-2.5 py-0.5 rounded-full border border-primary/10">
-                ค่าจัดส่ง ฿15
+              <span className="text-xs font-bold text-primary-dark bg-primary-light px-3 py-1 rounded-full border border-primary/20">
+                ค่าบริการ ฿{activeJob.total_price}
               </span>
             </div>
 
             {/* Status indicator banner */}
-            <div className="p-3.5 rounded-2xl text-xs font-black flex items-center gap-2 border bg-amber-50 text-amber-700 border-amber-200">
+            <div className="p-3.5 rounded-2xl text-xs font-semibold flex items-center gap-2 border bg-emerald-50 text-emerald-800 border-emerald-200">
               <span>
-                {activeJob.status === 'pending' && '⏳ รับงานสำเร็จแล้ว! ส่งออเดอร์ให้ร้านค้าเรียบร้อย (รอร้านค้ารับออเดอร์)'}
-                {activeJob.status === 'preparing' && '🍳 ร้านค้ากำลังจัดเตรียมสินค้า/ปรุงอาหาร...'}
-                {activeJob.status === 'delivering' && '✅ ร้านค้าเตรียมสินค้าเสร็จแล้ว! กำลังนำส่งให้ลูกค้า'}
+                {activeJob.order_type === 'ride'
+                  ? '🛵 ตอบรับงานเรียกรถเรียบร้อย! กำลังมุ่งหน้าไปรับผู้โดยสารที่จุดรับ'
+                  : activeJob.status === 'pending'
+                  ? '⏳ รับงานสำเร็จแล้ว! ส่งออเดอร์ให้ร้านค้าเรียบร้อย'
+                  : activeJob.status === 'preparing'
+                  ? '🍳 ร้านค้ากำลังจัดเตรียมสินค้า...'
+                  : '✅ ไรเดอร์กำลังนำส่งสินค้าถึงที่หมาย'}
               </span>
             </div>
 
             <div className="p-4 bg-slate-50 border border-slate-200/50 rounded-2xl text-xs space-y-3">
               <div className="flex justify-between font-bold">
-                <span className="text-slate-500">ออเดอร์หมายเลข</span>
+                <span className="text-slate-500">หมายเลขออเดอร์</span>
                 <span className="text-slate-800">#00{activeJob.id.substr(-4)}</span>
               </div>
               <div className="flex justify-between font-bold">
-                <span className="text-slate-500">รายการสั่งซื้อ</span>
-                <span className="text-slate-805 text-right max-w-[200px] truncate">{activeJob.items}</span>
-              </div>
-              <div className="flex justify-between font-bold">
-                <span className="text-slate-500">เก็บค่าอาหาร/สินค้าหน้าร้าน</span>
-                <span className="text-slate-800 font-extrabold text-sm">฿{activeJob.total_price - 15}</span>
+                <span className="text-slate-500">{activeJob.order_type === 'ride' ? 'บริการเดินทาง' : 'รายการสั่งซื้อ'}</span>
+                <span className="text-slate-805 text-right max-w-[220px] truncate">{activeJob.items}</span>
               </div>
               <div className="flex justify-between font-bold border-t border-slate-200/50 pt-2 text-slate-805">
-                <span>เก็บเงินสุทธิจากลูกค้าปลายทาง</span>
+                <span>ค่าโดยสารสุทธิจากลูกค้า</span>
                 <span className="text-primary-dark font-extrabold text-sm">฿{activeJob.total_price}</span>
               </div>
             </div>
@@ -263,23 +288,23 @@ export default function RiderDashboard({ user }: RiderDashboardProps) {
             <div className="space-y-4 pt-2">
               <div className="flex gap-3 relative text-xs">
                 <div className="absolute left-3.5 top-6 bottom-0 w-0.5 -translate-x-1/2 bg-slate-200"></div>
-                <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 border border-slate-200 z-10 text-xs">
-                  🏪
+                <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200 z-10 text-xs font-bold">
+                  {activeJob.order_type === 'ride' ? '📍' : '🏪'}
                 </div>
                 <div className="space-y-0.5 pt-0.5 text-left">
-                  <h5 className="font-black text-slate-700">จุดรับสินค้า (ร้านค้า)</h5>
-                  <p className="text-[11px] text-slate-500 font-bold">{activeJob.merchant_name}</p>
+                  <h5 className="font-black text-slate-700">{activeJob.order_type === 'ride' ? 'จุดรับผู้โดยสาร (Pick-up)' : 'จุดรับสินค้า (ร้านค้า)'}</h5>
+                  <p className="text-[11px] text-slate-700 font-bold">{activeJob.order_type === 'ride' ? (activeJob.pickup_dest || 'จุดรับในวิทยาเขต') : activeJob.merchant_name}</p>
                 </div>
               </div>
 
               <div className="flex gap-3 text-xs">
-                <div className="w-7 h-7 rounded-full bg-primary-light text-primary flex items-center justify-center shrink-0 border border-primary/20 z-10 text-xs">
-                  📍
+                <div className="w-7 h-7 rounded-full bg-red-100 text-red-700 flex items-center justify-center shrink-0 border border-red-200 z-10 text-xs font-bold">
+                  🏁
                 </div>
                 <div className="space-y-0.5 pt-0.5 text-left">
-                  <h5 className="font-black text-primary">จุดส่งสินค้า (ลูกค้า)</h5>
-                  <p className="text-[11px] text-slate-500 font-bold">{activeJob.dest}</p>
-                  <p className="text-[9.5px] text-slate-400">ชื่อลูกค้า: <b>คุณ {activeJob.customer_name}</b></p>
+                  <h5 className="font-black text-slate-700">{activeJob.order_type === 'ride' ? 'จุดส่งปลายทาง (Drop-off)' : 'จุดส่งสินค้า (ลูกค้า)'}</h5>
+                  <p className="text-[11px] text-slate-700 font-bold">{activeJob.dest}</p>
+                  <p className="text-[9.5px] text-slate-400">ผู้โดยสาร/ลูกค้า: <b>คุณ {activeJob.customer_name}</b></p>
                 </div>
               </div>
             </div>
@@ -289,86 +314,141 @@ export default function RiderDashboard({ user }: RiderDashboardProps) {
                 href="tel:0800000000"
                 onClick={(e) => {
                   e.preventDefault();
-                  alert(`โทรหาผู้รับสินค้า คุณ ${activeJob.customer_name} (เบอร์โทรศัพท์มือถือแบบจำลอง)`);
+                  alert(`โทรหาคุณ ${activeJob.customer_name} (เบอร์จำลอง 📞)`);
                 }}
                 className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black rounded-xl transition duration-200 cursor-pointer text-center active:scale-95 flex items-center justify-center gap-1.5 border border-slate-200"
               >
-                📞 ติดต่อลูกค้า
+                📞 ติดต่อผู้โดยสาร/ลูกค้า
               </a>
-              {activeJob.status === 'delivering' ? (
-                <button
-                  onClick={() => handleCompleteJob(activeJob.id, activeJob.items)}
-                  className="flex-1 py-3 bg-primary hover:bg-primary-hover text-white text-xs font-black rounded-xl transition duration-300 shadow cursor-pointer text-center active:scale-95 btn-scale"
-                >
-                  จัดส่งสินค้าถึงที่หมายแล้ว ✓
-                </button>
-              ) : (
-                <button
-                  disabled
-                  className="flex-1 py-3 bg-slate-200 text-slate-400 text-xs font-black rounded-xl text-center cursor-not-allowed"
-                >
-                  ⏳ รอร้านค้าจัดเตรียมสินค้าให้เสร็จ...
-                </button>
-              )}
+              <button
+                onClick={() => handleCompleteJob(activeJob.id, activeJob.items)}
+                className="flex-1 py-3 bg-primary hover:bg-primary-hover text-white text-xs font-black rounded-xl transition duration-300 shadow cursor-pointer text-center active:scale-95 btn-scale"
+              >
+                {activeJob.order_type === 'ride' ? 'ส่งถึงจุดหมายปลายทางแล้ว ✓' : 'จัดส่งสินค้าถึงที่หมายแล้ว ✓'}
+              </button>
             </div>
           </div>
         )}
 
-        {/* Case 2: Available Delivery Jobs Board */}
+        {/* Case 2: Available Delivery & Ride Jobs Board */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200/60 space-y-4">
-          <h3 className="text-xs sm:text-sm font-black text-slate-805 pb-3 border-b border-slate-100 flex justify-between items-center uppercase tracking-wider">
-            <span>📋 บอร์ดรับงานส่งด่วน ม.อ. (Job Board)</span>
-            <span className="text-[10px] font-black text-primary bg-primary-light border border-primary/10 px-2.5 py-0.5 rounded-full">
-              มีงานว่าง {availableRequests.length} งาน
-            </span>
-          </h3>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-100">
+            <h3 className="text-xs sm:text-sm font-black text-slate-805 uppercase tracking-wider flex items-center gap-2">
+              <span>📋 บอร์ดรับงานด่วน ม.อ. (Job Board)</span>
+              <span className="text-[10px] font-black text-primary bg-primary-light border border-primary/10 px-2.5 py-0.5 rounded-full">
+                มีงานว่าง {availableRequests.length} งาน
+              </span>
+            </h3>
+
+            {/* Category Filter Pills */}
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setJobCategoryFilter('all')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  jobCategoryFilter === 'all' ? 'bg-white shadow-xs text-primary' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                ทั้งหมด
+              </button>
+              <button
+                type="button"
+                onClick={() => setJobCategoryFilter('food')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  jobCategoryFilter === 'food' ? 'bg-white shadow-xs text-primary' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                🍔 งานส่งอาหาร
+              </button>
+              <button
+                type="button"
+                onClick={() => setJobCategoryFilter('ride')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  jobCategoryFilter === 'ride' ? 'bg-white shadow-xs text-primary' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                🛵 งานเรียกรถ
+              </button>
+            </div>
+          </div>
 
           {activeJob ? (
             <p className="text-xs text-slate-400 py-8 text-center font-bold bg-slate-50 rounded-2xl border border-slate-100">
               คุณมีงานที่ยังนำส่งไม่เสร็จ! กรุณาจัดการงานปัจจุบันด้านบนให้เสร็จสิ้นก่อนรับงานใหม่
             </p>
-          ) : availableRequests.length === 0 ? (
-            <p className="text-xs text-slate-400 py-8 text-center font-bold border border-dashed border-slate-200 rounded-2xl">
-              ยังไม่มีใบเรียกงานจัดส่งว่างในบอร์ดตอนนี้ รอรับแจ้งเตือน... 🛵
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {availableRequests.map((job) => (
-                <div
-                  key={job.id}
-                  className="bg-white rounded-2xl border border-slate-200 p-5 hover:border-primary/30 transition duration-300 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-left shadow-sm hover:shadow"
-                >
-                  <div className="space-y-2 text-xs flex-1 text-left">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[10px] font-black text-slate-700 bg-slate-100 border border-slate-200/40 px-2 py-0.5 rounded">
-                        #00{job.id.substr(-4)}
-                      </span>
-                      <span className="text-[10.5px] font-black text-primary-dark bg-primary-light border border-primary/20 px-2 py-0.5 rounded">
-                        ค่าเที่ยว ฿15
-                      </span>
+          ) : (() => {
+            const filtered = availableRequests.filter((j) => {
+              if (jobCategoryFilter === 'food') return j.order_type !== 'ride';
+              if (jobCategoryFilter === 'ride') return j.order_type === 'ride';
+              return true;
+            });
+
+            if (filtered.length === 0) {
+              return (
+                <p className="text-xs text-slate-400 py-8 text-center font-bold border border-dashed border-slate-200 rounded-2xl">
+                  ยังไม่มีงานว่างในหมวดหมู่นี้ในบอร์ดตอนนี้... 🛵
+                </p>
+              );
+            }
+
+            return (
+              <div className="space-y-4">
+                {filtered.map((job) => {
+                  const isRide = job.order_type === 'ride';
+                  return (
+                    <div
+                      key={job.id}
+                      className={`rounded-2xl border p-5 transition duration-300 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-left shadow-sm hover:shadow ${
+                        isRide ? 'bg-emerald-50/40 border-emerald-200 hover:border-emerald-400' : 'bg-white border-slate-200 hover:border-primary/30'
+                      }`}
+                    >
+                      <div className="space-y-2 text-xs flex-1 text-left">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-[10px] font-black text-slate-700 bg-white border border-slate-200 px-2 py-0.5 rounded">
+                            #00{job.id.substr(-4)}
+                          </span>
+                          <span className={`text-[10.5px] font-black px-2.5 py-0.5 rounded border ${
+                            isRide ? 'text-emerald-800 bg-emerald-100 border-emerald-200' : 'text-primary-dark bg-primary-light border-primary/20'
+                          }`}>
+                            {isRide ? '🛵 งานรับส่งผู้โดยสาร' : '🍔 งานส่งอาหาร'}
+                          </span>
+                          <span className="text-[10.5px] font-black text-slate-700 bg-white border border-slate-200 px-2 py-0.5 rounded">
+                            ค่าบริการ ฿{job.total_price}
+                          </span>
+                        </div>
+
+                        <h4 className="text-sm sm:text-base font-black text-slate-850 pt-0.5">{job.items}</h4>
+
+                        <div className="space-y-1 text-slate-600">
+                          {isRide ? (
+                            <>
+                              <p>📍 จุดรับผู้โดยสาร: <b className="text-slate-800">{job.pickup_dest || 'จุดรับในวิทยาเขต'}</b></p>
+                              <p>🏁 จุดส่งปลายทาง: <b className="text-slate-800">{job.dest}</b></p>
+                              <p className="text-[10.5px]">ผู้โดยสาร: <b className="text-slate-800">คุณ {job.customer_name}</b></p>
+                            </>
+                          ) : (
+                            <>
+                              <p>🏪 ร้านรับของ: <b className="text-slate-750">{job.merchant_name}</b></p>
+                              <p>📍 จุดส่งปลายทาง: <b className="text-slate-750">{job.dest}</b></p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => isRide ? handleAcceptRideJob(job) : handleAcceptJob(job.id, job.items)}
+                        className={`w-full md:w-auto shrink-0 px-5 py-3 text-white text-xs font-black rounded-xl transition duration-300 shadow cursor-pointer text-center active:scale-95 btn-scale ${
+                          isRide ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200' : 'bg-primary hover:bg-primary-hover shadow-primary/10'
+                        }`}
+                      >
+                        {isRide ? 'รับงานเรียกรถนี้ 🛵' : 'รับงานส่งนี้ ⚡'}
+                      </button>
                     </div>
-
-                    <h4 className="text-sm sm:text-base font-black text-slate-850 pt-0.5">{job.items}</h4>
-
-                    <div className="space-y-1 text-slate-500">
-                      <p>🏪 ร้านรับของ: <b className="text-slate-750">{job.merchant_name}</b></p>
-                      <p>📍 จุดส่งปลายทาง: <b className="text-slate-750">{job.dest}</b></p>
-                      <p className="text-[10.5px]">
-                        เก็บเงินปลายทาง: <b className="text-slate-750">฿{job.total_price}</b> • (รวมค่าส่ง ฿15 แล้ว)
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => handleAcceptJob(job.id, job.items)}
-                    className="w-full md:w-auto shrink-0 px-5 py-3 bg-primary hover:bg-primary-hover text-white text-xs font-black rounded-xl transition duration-300 shadow shadow-primary/10 cursor-pointer text-center active:scale-95 btn-scale"
-                  >
-                    รับงานส่งนี้ ⚡
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Rider History Logs */}
