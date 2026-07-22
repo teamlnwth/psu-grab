@@ -631,7 +631,11 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
           merchants={merchants}
           filteredMerchants={filteredMerchants}
           selectedMerchant={selectedMerchant}
-          setSelectedMerchant={setSelectedMerchant}
+          onSelectMerchant={(merchant) => {
+            setSelectedMerchant(merchant);
+            fetchSelectedMerchantProducts(merchant.id);
+          }}
+          onDeselectMerchant={() => setSelectedMerchant(null)}
           selectedMerchantProducts={selectedMerchantProducts}
           cart={cart}
           onAddToCart={handleAddToCart}

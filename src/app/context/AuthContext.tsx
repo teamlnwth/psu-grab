@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../supabase';
+import { hashPassword, sanitizeInput } from '../utils/security';
 
 export interface User {
   id: string;
@@ -38,7 +39,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(JSON.parse(session));
         }
 
-        // Define seed accounts to auto-populate in user's Supabase database
+        // Define seed accounts to auto-populate in user's Supabase database with hashed passwords
+        const defaultHashedPassword = await hashPassword('password123');
+        const adminHashedPassword = await hashPassword('por012345');
+
         const seedUsers = [
           {
             id: '1',
@@ -49,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: 'customer',
             shop_name: null,
             merchant_type: null,
-            password: 'password123'
+            password: defaultHashedPassword
           },
           {
             id: '2',
@@ -60,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: 'rider',
             shop_name: null,
             merchant_type: null,
-            password: 'password123'
+            password: defaultHashedPassword
           },
           {
             id: '3',
@@ -71,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: 'merchant',
             shop_name: 'ครัว ม.อ. (Krua PSU)',
             merchant_type: 'restaurant',
-            password: 'password123',
+            password: defaultHashedPassword,
             is_partner: true
           },
           {
@@ -83,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: 'merchant',
             shop_name: 'ม.อ. มาร์ท (PSU Mart)',
             merchant_type: 'minimart',
-            password: 'password123',
+            password: defaultHashedPassword,
             is_partner: true
           },
           {
@@ -95,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: 'admin',
             shop_name: null,
             merchant_type: null,
-            password: 'por012345'
+            password: adminHashedPassword
           }
         ];
 
@@ -141,14 +145,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (emailOrStudentId: string, password: string) => {
     try {
-      const trimmedInput = emailOrStudentId.trim();
+      const trimmedInput = sanitizeInput(emailOrStudentId.trim());
+      const hashedPassword = await hashPassword(password);
 
-      // Query database for matching user
+      // Query database for matching user using hashed password
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, name, email, phone, student_id, role, shop_name, merchant_type')
         .or(`email.eq.${trimmedInput},student_id.eq.${trimmedInput}`)
-        .eq('password', password)
+        .eq('password', hashedPassword)
         .maybeSingle();
 
       if (error) {
@@ -184,20 +189,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (userData: Omit<User, 'id'> & { password: string }) => {
     try {
       const id = Math.random().toString(36).substr(2, 9); // Create a short text ID
+      const hashedPassword = await hashPassword(userData.password);
 
-      // Insert new profile record
+      // Insert new profile record with hashed password
       const { error } = await supabase
         .from('profiles')
         .insert([{
           id,
-          name: userData.name,
-          email: userData.email,
-          phone: userData.phone,
-          student_id: userData.studentId || null,
+          name: sanitizeInput(userData.name),
+          email: sanitizeInput(userData.email),
+          phone: sanitizeInput(userData.phone),
+          student_id: userData.studentId ? sanitizeInput(userData.studentId) : null,
           role: userData.role,
-          shop_name: userData.shopName || null,
+          shop_name: userData.shopName ? sanitizeInput(userData.shopName) : null,
           merchant_type: userData.merchantType || null,
-          password: userData.password
+          password: hashedPassword
         }]);
 
       if (error) {

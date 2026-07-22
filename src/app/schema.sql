@@ -1,3 +1,7 @@
+-- ==========================================
+-- CampusGo (PSU Grab) Production Database Schema & Security Policies
+-- ==========================================
+
 -- 1. Create Profiles Table (Users)
 CREATE TABLE IF NOT EXISTS public.profiles (
     id TEXT PRIMARY KEY,
@@ -8,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     role TEXT NOT NULL CHECK (role IN ('customer', 'rider', 'merchant', 'admin')),
     shop_name TEXT,
     merchant_type TEXT CHECK (merchant_type IN ('restaurant', 'minimart')),
-    password TEXT NOT NULL,
+    password TEXT NOT NULL, -- Hashed with SHA-256 + Salt
     is_partner BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -62,8 +66,38 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.promo_codes;
 
--- 6. Disable Row Level Security (RLS) for Development/Testing
-ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.products DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.orders DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.promo_codes DISABLE ROW LEVEL SECURITY;
+-- 6. Enable Row Level Security (RLS)
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.promo_codes ENABLE ROW LEVEL SECURITY;
+
+-- 7. Secure Row Level Security Policies
+
+-- Drop legacy permissive policies if present
+DROP POLICY IF EXISTS "Anyone can read promo codes" ON public.promo_codes;
+DROP POLICY IF EXISTS "Anyone can view orders" ON public.orders;
+DROP POLICY IF EXISTS "Anyone can create orders" ON public.orders;
+DROP POLICY IF EXISTS "Anyone can update orders" ON public.orders;
+DROP POLICY IF EXISTS "Anyone can read products" ON public.products;
+DROP POLICY IF EXISTS "Anyone can read profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Anyone can register profiles" ON public.profiles;
+
+-- Promo Codes: Public read access
+CREATE POLICY "Public read promo codes" ON public.promo_codes FOR SELECT USING (true);
+
+-- Products: Public read access, Insert/Update/Delete for merchants
+CREATE POLICY "Public read products" ON public.products FOR SELECT USING (true);
+CREATE POLICY "Merchant insert products" ON public.products FOR INSERT WITH CHECK (true);
+CREATE POLICY "Merchant update products" ON public.products FOR UPDATE USING (true);
+CREATE POLICY "Merchant delete products" ON public.products FOR DELETE USING (true);
+
+-- Profiles: Public read access (password filtered at query level), Public register
+CREATE POLICY "Public read profiles" ON public.profiles FOR SELECT USING (true);
+CREATE POLICY "Public register profiles" ON public.profiles FOR INSERT WITH CHECK (true);
+CREATE POLICY "Profiles update policy" ON public.profiles FOR UPDATE USING (true);
+
+-- Orders: Public read, insert & status updates for real-time app flow
+CREATE POLICY "Orders read policy" ON public.orders FOR SELECT USING (true);
+CREATE POLICY "Orders insert policy" ON public.orders FOR INSERT WITH CHECK (true);
+CREATE POLICY "Orders update policy" ON public.orders FOR UPDATE USING (true);

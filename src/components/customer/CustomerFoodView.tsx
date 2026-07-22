@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface CustomerFoodViewProps {
   user: { name: string };
@@ -11,7 +11,8 @@ interface CustomerFoodViewProps {
   merchants: any[];
   filteredMerchants: any[];
   selectedMerchant: any | null;
-  setSelectedMerchant: (merch: any | null) => void;
+  onSelectMerchant: (merchant: any) => void;
+  onDeselectMerchant: () => void;
   selectedMerchantProducts: any[];
   cart: { id: string; name: string; price: number; quantity: number }[];
   onAddToCart: (product: any) => void;
@@ -40,7 +41,8 @@ export default function CustomerFoodView({
   merchants,
   filteredMerchants,
   selectedMerchant,
-  setSelectedMerchant,
+  onSelectMerchant,
+  onDeselectMerchant,
   selectedMerchantProducts,
   cart,
   onAddToCart,
@@ -64,6 +66,11 @@ export default function CustomerFoodView({
   const deliveryFee = 15;
   const cartTotal = Math.max(0, cartSubtotal - discount) + (cart.length > 0 ? deliveryFee : 0);
 
+  const recommendedMerchants = merchants.filter((m) => m.is_partner === true);
+
+  // Recommended carousel index
+  const [carouselIndex, setCarouselIndex] = useState(0);
+
   return (
     <div className="space-y-6 animate-fade-in text-left font-sans">
       {/* Hero Welcome & Campus Location Header */}
@@ -83,6 +90,7 @@ export default function CustomerFoodView({
           {/* Location Bar */}
           <div className="flex items-center gap-2 pt-0.5">
             <button
+              type="button"
               onClick={onOpenMapModal}
               className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 bg-emerald-50/60 hover:bg-emerald-100/60 px-3.5 py-2 rounded-xl border border-emerald-200/60 transition cursor-pointer active:scale-95"
             >
@@ -98,6 +106,7 @@ export default function CustomerFoodView({
         {/* Category Filter Pills */}
         <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80 shrink-0 w-full md:w-auto">
           <button
+            type="button"
             onClick={() => setActiveCategory('all')}
             className={`flex-1 md:flex-none px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeCategory === 'all'
@@ -108,6 +117,7 @@ export default function CustomerFoodView({
             ทั้งหมด
           </button>
           <button
+            type="button"
             onClick={() => setActiveCategory('food')}
             className={`flex-1 md:flex-none px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeCategory === 'food'
@@ -152,7 +162,6 @@ export default function CustomerFoodView({
                     <span className="text-[9px] font-black tracking-widest uppercase bg-black/20 px-2 py-0.5 rounded-full mt-1 border border-white/20">
                       DISCOUNT
                     </span>
-                    {/* Vertical dashed divider */}
                     <div className="absolute right-0 top-0 bottom-0 border-r-2 border-dashed border-white/30"></div>
                   </div>
 
@@ -199,60 +208,214 @@ export default function CustomerFoodView({
         </div>
       )}
 
-      {/* Main Grid: Merchants vs Cart */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Merchants List */}
-        <div className="lg:col-span-8 space-y-6">
-          <div className="flex justify-between items-center px-1">
-            <h3 className="text-base font-extrabold text-slate-900">
-              ร้านค้าในวิทยาเขต ({filteredMerchants.length} ร้าน)
+      {/* Recommended Shops Section (ร้านเด็ดต้องลอง) */}
+      {recommendedMerchants.length > 0 && !selectedMerchant && (
+        <div className="bg-white rounded-3xl p-6 shadow-xs border border-amber-200/80 space-y-4 text-left relative overflow-hidden">
+          <div className="flex justify-between items-center pb-2 border-b border-amber-100">
+            <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+              <span className="text-amber-500 text-lg">⭐</span> ร้านเด็ดต้องลอง (Recommended Shops)
             </h3>
+            <span className="text-xs font-extrabold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200/60">
+              ร้านพาร์ทเนอร์แนะนำ ({recommendedMerchants.length} ร้าน)
+            </span>
           </div>
 
-          {filteredMerchants.length === 0 ? (
-            <div className="bg-white rounded-3xl p-12 text-center border border-slate-200/80 space-y-3">
-              <span className="text-4xl">🏪</span>
-              <p className="text-sm font-semibold text-slate-500">ไม่พบร้านค้าในหมวดหมู่นี้</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {filteredMerchants.map((merchant) => {
-                const ratingInfo = merchantRatings[merchant.id] || { avg: 5.0, count: 0 };
-                return (
-                  <div
-                    key={merchant.id}
-                    onClick={() => setSelectedMerchant(merchant)}
-                    className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-4 group text-left"
-                  >
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center text-2xl font-bold border border-emerald-200/60 group-hover:scale-105 transition">
-                          {merchant.merchant_type === 'restaurant' ? '🍳' : '🛍️'}
-                        </div>
-                        <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
-                          {merchant.merchant_type === 'restaurant' ? 'ร้านอาหาร' : 'มินิมาร์ท'}
-                        </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {recommendedMerchants.map((merchant) => {
+              const ratingInfo = merchantRatings[merchant.id] || { avg: 5.0, count: 0 };
+              return (
+                <div
+                  key={`rec-${merchant.id}`}
+                  onClick={() => onSelectMerchant(merchant)}
+                  className="bg-gradient-to-r from-amber-50/40 via-white to-amber-50/20 rounded-3xl p-5 border border-amber-300/80 shadow-sm hover:shadow-md hover:border-amber-400 transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-4 group text-left relative overflow-hidden"
+                >
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-2xl font-bold border border-amber-200 group-hover:scale-105 transition">
+                        {merchant.merchant_type === 'restaurant' ? '🍳' : '🛍️'}
                       </div>
-                      <div>
-                        <h4 className="text-base font-extrabold text-slate-900 group-hover:text-emerald-600 transition">
-                          {merchant.shop_name || merchant.name}
-                        </h4>
-                        <div className="flex items-center gap-2 pt-1 text-xs text-slate-500 font-medium">
-                          <span className="text-amber-500 font-bold">★ {ratingInfo.avg}</span>
-                          <span>({ratingInfo.count} รีวิว)</span>
-                          <span>•</span>
-                          <span>ส่งด่วน ~15-20 นาที</span>
-                        </div>
-                      </div>
+                      <span className="text-[10px] font-extrabold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full border border-amber-200 uppercase tracking-wider">
+                        ร้านเด็ด ⭐
+                      </span>
                     </div>
-
-                    <div className="pt-3 border-t border-slate-100 flex justify-between items-center text-xs font-bold text-emerald-600">
-                      <span>เลือกระบุเมนูอาหาร</span>
-                      <span className="group-hover:translate-x-1 transition font-black">เลือกเมนู →</span>
+                    <div>
+                      <h4 className="text-base font-black text-slate-900 group-hover:text-amber-700 transition">
+                        {merchant.shop_name || merchant.name}
+                      </h4>
+                      <div className="flex items-center gap-2 pt-1 text-xs text-slate-500 font-medium">
+                        <span className="text-amber-500 font-bold">★ {ratingInfo.avg}</span>
+                        <span>({ratingInfo.count} รีวิว)</span>
+                        <span>•</span>
+                        <span>ส่งด่วน ~15-20 นาที</span>
+                      </div>
                     </div>
                   </div>
-                );
-              })}
+
+                  <div className="pt-3 border-t border-amber-100 flex justify-between items-center text-xs font-bold text-amber-700">
+                    <span>เลือกระบุเมนูอาหาร</span>
+                    <span className="group-hover:translate-x-1 transition font-black">เลือกเมนู →</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Main Grid: Merchants vs Cart */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Merchants List or Selected Merchant Menu */}
+        <div className="lg:col-span-8 space-y-6">
+          {!selectedMerchant ? (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center px-1">
+                <h3 className="text-base font-extrabold text-slate-900">
+                  ร้านค้าในวิทยาเขตทั้งหมด ({filteredMerchants.length} ร้าน)
+                </h3>
+              </div>
+
+              {filteredMerchants.length === 0 ? (
+                <div className="bg-white rounded-3xl p-12 text-center border border-slate-200/80 space-y-3">
+                  <span className="text-4xl">🏪</span>
+                  <p className="text-sm font-semibold text-slate-500">ไม่พบร้านค้าในหมวดหมู่นี้</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {filteredMerchants.map((merchant) => {
+                    const ratingInfo = merchantRatings[merchant.id] || { avg: 5.0, count: 0 };
+                    return (
+                      <div
+                        key={merchant.id}
+                        onClick={() => onSelectMerchant(merchant)}
+                        className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-4 group text-left"
+                      >
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-100/70 text-emerald-700 flex items-center justify-center text-2xl font-bold border border-emerald-200/60 group-hover:scale-105 transition">
+                              {merchant.merchant_type === 'restaurant' ? '🍳' : '🛍️'}
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
+                              {merchant.merchant_type === 'restaurant' ? 'ร้านอาหาร' : 'มินิมาร์ท'}
+                            </span>
+                          </div>
+                          <div>
+                            <h4 className="text-base font-extrabold text-slate-900 group-hover:text-emerald-600 transition">
+                              {merchant.shop_name || merchant.name}
+                            </h4>
+                            <div className="flex items-center gap-2 pt-1 text-xs text-slate-500 font-medium">
+                              <span className="text-amber-500 font-bold">★ {ratingInfo.avg}</span>
+                              <span>({ratingInfo.count} รีวิว)</span>
+                              <span>•</span>
+                              <span>ส่งด่วน ~15-20 นาที</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-3 border-t border-slate-100 flex justify-between items-center text-xs font-bold text-emerald-600">
+                          <span>เลือกระบุเมนูอาหาร</span>
+                          <span className="group-hover:translate-x-1 transition font-black">เลือกเมนู →</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Selected Merchant Product Menu Panel */
+            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-5 animate-fade-in">
+              <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+                <button
+                  type="button"
+                  onClick={onDeselectMerchant}
+                  className="text-xs font-extrabold text-slate-500 hover:text-emerald-600 flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  ← ย้อนกลับไปเลือกร้านอื่น
+                </button>
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                  {selectedMerchant.merchant_type === 'restaurant' ? '🍴 ร้านอาหาร' : '🛍️ มินิมาร์ท'}
+                </span>
+              </div>
+
+              {/* Merchant Title Banner */}
+              <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200/60">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-3xl font-bold shrink-0">
+                  {selectedMerchant.merchant_type === 'restaurant' ? '🍳' : '🛍️'}
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">{selectedMerchant.shop_name || selectedMerchant.name}</h3>
+                  <p className="text-xs text-slate-500 font-semibold">
+                    เบอร์ติดต่อ: {selectedMerchant.phone} • การส่งด่วนถึงที่พักในวิทยาเขต ม.อ.
+                  </p>
+                </div>
+              </div>
+
+              {/* Menu Tabs: Products vs Reviews */}
+              <div className="flex border-b border-slate-200 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setMerchantReviewsTab('menu')}
+                  className={`pb-3 px-4 transition ${
+                    merchantReviewsTab === 'menu'
+                      ? 'border-b-2 border-emerald-500 text-emerald-600 font-extrabold'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  🍽️ รายการเมนูอาหาร/สินค้า ({selectedMerchantProducts.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMerchantReviewsTab('reviews')}
+                  className={`pb-3 px-4 transition ${
+                    merchantReviewsTab === 'reviews'
+                      ? 'border-b-2 border-emerald-500 text-emerald-600 font-extrabold'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  ⭐ รีวิวจากลูกค้า ({selectedMerchantReviews.length})
+                </button>
+              </div>
+
+              {/* Menu Items List */}
+              {merchantReviewsTab === 'menu' ? (
+                selectedMerchantProducts.length === 0 ? (
+                  <p className="text-center py-10 text-xs text-slate-400 font-semibold">ยังไม่มีรายการสินค้าในร้านนี้</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+                    {selectedMerchantProducts.map((product) => (
+                      <div key={product.id} className="p-4 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200/80 flex justify-between items-center gap-3 transition">
+                        <div className="space-y-1 min-w-0 text-left">
+                          <h4 className="text-xs font-bold text-slate-900 truncate">{product.name}</h4>
+                          <span className="text-xs font-black text-emerald-600 block">฿{product.price}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onAddToCart(product)}
+                          className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-extrabold rounded-xl transition shadow cursor-pointer active:scale-95 shrink-0"
+                        >
+                          + สั่งซื้อ
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )
+              ) : (
+                selectedMerchantReviews.length === 0 ? (
+                  <p className="text-center py-10 text-xs text-slate-400 font-semibold">ยังไม่มีรีวิวสำหรับร้านนี้</p>
+                ) : (
+                  <div className="space-y-3 pt-2">
+                    {selectedMerchantReviews.map((rev) => (
+                      <div key={rev.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5 text-xs text-left">
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold text-slate-800">คุณ {rev.customer_name}</span>
+                          <span className="text-amber-500 font-bold">★ {rev.shop_rating} / 5</span>
+                        </div>
+                        {rev.shop_review && <p className="text-slate-600 font-medium">{rev.shop_review}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
             </div>
           )}
         </div>
@@ -344,7 +507,7 @@ export default function CustomerFoodView({
                   <input
                     type="text"
                     value={deliveryDest}
-                    onChange={(e) => onOpenMapModal()}
+                    onChange={() => onOpenMapModal()}
                     placeholder="เช่น หอ 11 ห้อง 420 หรือ ตึกวิศวะชั้น 2"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 outline-none"
                     readOnly
@@ -387,104 +550,6 @@ export default function CustomerFoodView({
           </div>
         </div>
       </div>
-
-      {/* Selected Merchant Product Modal */}
-      {selectedMerchant && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="max-w-2xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-slate-200 animate-slide-up text-left">
-            <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-white">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-2xl font-bold border border-emerald-200">
-                  {selectedMerchant.merchant_type === 'restaurant' ? '🍳' : '🛍️'}
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">{selectedMerchant.shop_name || selectedMerchant.name}</h3>
-                  <p className="text-xs text-slate-500 font-medium">
-                    {selectedMerchant.merchant_type === 'restaurant' ? 'ร้านอาหารพาร์ทเนอร์' : 'มินิมาร์ทพาร์ทเนอร์'} • โทร: {selectedMerchant.phone}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedMerchant(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold transition cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Menu vs Review Tabs */}
-            <div className="flex border-b border-slate-200 bg-slate-50 px-6">
-              <button
-                type="button"
-                onClick={() => setMerchantReviewsTab('menu')}
-                className={`py-3 px-4 text-xs font-bold border-b-2 transition ${
-                  merchantReviewsTab === 'menu'
-                    ? 'border-emerald-500 text-emerald-600 font-extrabold'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                🍴 รายการอาหาร/สินค้า ({selectedMerchantProducts.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setMerchantReviewsTab('reviews')}
-                className={`py-3 px-4 text-xs font-bold border-b-2 transition ${
-                  merchantReviewsTab === 'reviews'
-                    ? 'border-emerald-500 text-emerald-600 font-extrabold'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                ⭐ รีวิวจากลูกค้า ({selectedMerchantReviews.length})
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {merchantReviewsTab === 'menu' ? (
-                selectedMerchantProducts.length === 0 ? (
-                  <p className="text-center py-10 text-xs text-slate-400 font-semibold">ยังไม่มีสินค้าในร้านนี้</p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    {selectedMerchantProducts.map((product) => (
-                      <div key={product.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 flex justify-between items-center gap-3">
-                        <div className="space-y-1 min-w-0 text-left">
-                          <h4 className="text-xs font-bold text-slate-900 truncate">{product.name}</h4>
-                          <span className="text-xs font-extrabold text-emerald-600 block">฿{product.price}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => onAddToCart(product)}
-                          className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition shadow cursor-pointer active:scale-95 shrink-0"
-                        >
-                          + สั่งซื้อ
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )
-              ) : (
-                selectedMerchantReviews.length === 0 ? (
-                  <p className="text-center py-10 text-xs text-slate-400 font-semibold">ยังไม่มีรีวิวสำหรับร้านนี้</p>
-                ) : (
-                  <div className="space-y-3">
-                    {selectedMerchantReviews.map((rev) => (
-                      <div key={rev.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5 text-xs text-left">
-                        <div className="flex justify-between items-center">
-                          <span className="font-bold text-slate-800">คุณ {rev.customer_name}</span>
-                          <span className="text-amber-500 font-bold">★ {rev.shop_rating} / 5</span>
-                        </div>
-                        {rev.shop_review && <p className="text-slate-600 font-medium">{rev.shop_review}</p>}
-                        <span className="text-[10px] text-slate-400 block pt-1">{new Date(rev.created_at).toLocaleDateString('th-TH')}</span>
-                      </div>
-                    ))}
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
