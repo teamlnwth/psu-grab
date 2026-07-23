@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     merchant_type TEXT CHECK (merchant_type IN ('restaurant', 'minimart')),
     password TEXT NOT NULL, -- Hashed with SHA-256 + Salt
     is_partner BOOLEAN DEFAULT FALSE,
+    is_verified BOOLEAN DEFAULT FALSE,
+    verification_token TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

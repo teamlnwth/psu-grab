@@ -8,17 +8,24 @@ import { isSupabaseConfigured } from '../supabase';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, resendVerificationEmail } = useAuth();
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isUnverified, setIsUnverified] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string>('');
+  const [resendToken, setResendToken] = useState<string | null>(null);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsUnverified(false);
+    setResendSuccess(false);
 
     if (!identifier || !password) {
       setError('กรอกอีเมล/รหัสนักศึกษา และรหัสผ่านด้วยนะ');
@@ -40,6 +47,22 @@ export default function LoginPage() {
       }, 1200);
     } else {
       setError(result.error || 'ล็อกอินไม่ได้');
+      if (result.unverified) {
+        setIsUnverified(true);
+        setUnverifiedEmail(result.email || identifier);
+      }
+    }
+  };
+
+  const handleResend = async () => {
+    if (!unverifiedEmail) return;
+    setIsResending(true);
+    const result = await resendVerificationEmail(unverifiedEmail);
+    setIsResending(false);
+
+    if (result.success) {
+      setResendSuccess(true);
+      setResendToken(result.verificationToken || null);
     }
   };
 
@@ -78,11 +101,45 @@ export default function LoginPage() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-2xl flex items-start gap-2.5">
-                <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <span className="text-xs text-red-700 font-semibold text-left">{error}</span>
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-2xl space-y-2">
+                <div className="flex items-start gap-2.5">
+                  <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span className="text-xs text-red-700 font-semibold text-left">{error}</span>
+                </div>
+
+                {isUnverified && (
+                  <div className="pt-2 border-t border-red-200/60">
+                    <button
+                      type="button"
+                      onClick={handleResend}
+                      disabled={isResending}
+                      className="text-xs font-extrabold text-amber-900 underline hover:text-amber-950 flex items-center gap-1 cursor-pointer"
+                    >
+                      {isResending ? 'กำลังส่งข้อมูล...' : '✉️ ส่งลิงก์ยืนยันตัวตนเข้าอีเมลอีกครั้ง'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Resend Mock Email Inbox Toast */}
+            {resendSuccess && resendToken && (
+              <div className="w-full bg-slate-900 text-white p-4 rounded-2xl text-left space-y-2.5 border border-slate-800 animate-slide-up">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    📬 ส่งลิงก์ยืนยันใหม่สำเร็จ!
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300">กดลิงก์ด้านล่างเพื่อยืนยันตัวตนได้ทันที:</p>
+                <Link
+                  href={`/verify-email?token=${resendToken}`}
+                  className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow"
+                >
+                  <span>✉️ กดยืนยันอีเมลที่นี่ (Verify Email)</span>
+                </Link>
               </div>
             )}
 

@@ -13,13 +13,16 @@ export interface User {
   role: 'customer' | 'rider' | 'merchant' | 'admin';
   shopName?: string;
   merchantType?: 'restaurant' | 'minimart';
+  isVerified?: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (emailOrStudentId: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (userData: Omit<User, 'id'> & { password: string }) => Promise<{ success: boolean; error?: string }>;
+  login: (emailOrStudentId: string, password: string) => Promise<{ success: boolean; error?: string; unverified?: boolean; email?: string }>;
+  register: (userData: Omit<User, 'id'> & { password: string }) => Promise<{ success: boolean; error?: string; verificationToken?: string; email?: string }>;
+  verifyEmail: (token: string) => Promise<{ success: boolean; error?: string }>;
+  resendVerificationEmail: (email: string) => Promise<{ success: boolean; error?: string; verificationToken?: string }>;
   logout: () => void;
 }
 
@@ -53,7 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: 'customer',
             shop_name: null,
             merchant_type: null,
-            password: defaultHashedPassword
+            password: defaultHashedPassword,
+            is_verified: true
           },
           {
             id: '2',
@@ -64,7 +68,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: 'rider',
             shop_name: null,
             merchant_type: null,
-            password: defaultHashedPassword
+            password: defaultHashedPassword,
+            is_verified: true
           },
           {
             id: '3',
@@ -76,7 +81,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             shop_name: 'ครัว ม.อ. (Krua PSU)',
             merchant_type: 'restaurant',
             password: defaultHashedPassword,
-            is_partner: true
+            is_partner: true,
+            is_verified: true
           },
           {
             id: '4',
@@ -88,7 +94,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             shop_name: 'ม.อ. มาร์ท (PSU Mart)',
             merchant_type: 'minimart',
             password: defaultHashedPassword,
-            is_partner: true
+            is_partner: true,
+            is_verified: true
           },
           {
             id: '5',
@@ -99,7 +106,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: 'admin',
             shop_name: null,
             merchant_type: null,
-            password: adminHashedPassword
+            password: adminHashedPassword,
+            is_verified: true
           }
         ];
 
@@ -151,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Query database for matching user using hashed password
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, email, phone, student_id, role, shop_name, merchant_type')
+        .select('id, name, email, phone, student_id, role, shop_name, merchant_type, is_verified')
         .or(`email.eq.${trimmedInput},student_id.eq.${trimmedInput}`)
         .eq('password', hashedPassword)
         .maybeSingle();
@@ -164,6 +172,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data) {
+        // Check if email is verified
+        if (data.is_verified === false) {
+          return {
+            success: false,
+            unverified: true,
+            email: data.email,
+            error: 'ยังไม่ได้ยืนยันตัวตนผ่านอีเมล กรุณากดยืนยันตัวตนในอีเมลของคุณก่อนเข้าสู่ระบบ'
+          };
+        }
+
         const safeUser: User = {
           id: data.id,
           name: data.name,
@@ -172,7 +190,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           studentId: data.student_id || undefined,
           role: data.role as User['role'],
           shopName: data.shop_name || undefined,
-          merchantType: data.merchant_type as User['merchantType']
+          merchantType: data.merchant_type as User['merchantType'],
+          isVerified: true
         };
 
         localStorage.setItem('campusgo_session', JSON.stringify(safeUser));
@@ -190,8 +209,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const id = Math.random().toString(36).substr(2, 9); // Create a short text ID
       const hashedPassword = await hashPassword(userData.password);
+      const verificationToken = Math.random().toString(36).substr(2, 10) + Date.now().toString(36);
 
-      // Insert new profile record with hashed password
+      // Insert new profile record with hashed password and verification token
       const { error } = await supabase
         .from('profiles')
         .insert([{
@@ -203,7 +223,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: userData.role,
           shop_name: userData.shopName ? sanitizeInput(userData.shopName) : null,
           merchant_type: userData.merchantType || null,
-          password: hashedPassword
+          password: hashedPassword,
+          is_verified: false,
+          verification_token: verificationToken
         }]);
 
       if (error) {
@@ -230,9 +252,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await supabase.from('products').insert(initialProducts);
       }
 
+      return { 
+        success: true, 
+        verificationToken, 
+        email: userData.email 
+      };
+    } catch {
+      return { success: false, error: 'สมัครไม่ได้ ลองใหมีกที' };
+    }
+  };
+
+  const verifyEmail = async (token: string) => {
+    try {
+      if (!token) return { success: false, error: 'ไม่พบโทเคนยืนยัน' };
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, is_verified')
+        .eq('verification_token', token)
+        .maybeSingle();
+
+      if (error || !data) {
+        return { success: false, error: 'ลิงก์ยืนยันไม่ถูกต้อง หรือหมดอายุแล้ว' };
+      }
+
+      if (data.is_verified) {
+        return { success: true, message: 'อีเมลนี้ถูกยืนยันเรียบร้อยแล้ว' };
+      }
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          is_verified: true,
+          verification_token: null
+        })
+        .eq('id', data.id);
+
+      if (updateError) {
+        return { success: false, error: 'ไม่สามารถอัปเดตการยืนยันได้ ลองอีกครั้ง' };
+      }
+
       return { success: true };
     } catch {
-      return { success: false, error: 'สมัครไม่ได้ ลองใหม่อีกที' };
+      return { success: false, error: 'เกิดข้อผิดพลาดในการยืนยันอีเมล' };
+    }
+  };
+
+  const resendVerificationEmail = async (email: string) => {
+    try {
+      const cleanEmail = sanitizeInput(email.trim());
+      const newToken = Math.random().toString(36).substr(2, 10) + Date.now().toString(36);
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ verification_token: newToken })
+        .eq('email', cleanEmail)
+        .eq('is_verified', false);
+
+      if (error) {
+        return { success: false, error: 'ไม่สามารถส่งลิงก์ใหม่ได้' };
+      }
+
+      return { success: true, verificationToken: newToken };
+    } catch {
+      return { success: false, error: 'เกิดข้อผิดพลาดในการส่งลิงก์ยืนยัน' };
     }
   };
 
@@ -246,7 +329,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, verifyEmail, resendVerificationEmail, logout }}>
       {children}
     </AuthContext.Provider>
   );
@@ -259,3 +342,4 @@ export function useAuth() {
   }
   return context;
 }
+

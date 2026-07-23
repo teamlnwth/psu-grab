@@ -25,6 +25,8 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [verificationToken, setVerificationToken] = useState<string | null>(null);
+  const [registeredEmail, setRegisteredEmail] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,9 +73,8 @@ export default function RegisterPage() {
 
     if (result.success) {
       setSuccess(true);
-      setTimeout(() => {
-        router.push('/login');
-      }, 1500);
+      setVerificationToken(result.verificationToken || null);
+      setRegisteredEmail(result.email || email);
     } else {
       setError(result.error || 'สมัครไม่ได้ ลองใหม่อีกที');
     }
@@ -101,59 +102,97 @@ export default function RegisterPage() {
           <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-5">สมัครสมาชิกใหม่</p>
           
           {/* Triple Green Role Selection */}
-          <div className="flex bg-slate-100 p-1.5 rounded-2xl relative z-10 border border-slate-200/30 gap-1">
-            <button
-              type="button"
-              onClick={() => setRole('customer')}
-              className={`flex-1 py-3 text-[10px] sm:text-xs font-extrabold rounded-xl transition-all duration-300 flex items-center justify-center gap-1 cursor-pointer ${
-                role === 'customer'
-                  ? 'bg-primary text-white shadow-sm'
-                  : 'text-slate-500 hover:bg-white/80 hover:text-slate-800'
-              }`}
-            >
-              👤 ลูกค้า
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole('rider')}
-              className={`flex-1 py-3 text-[10px] sm:text-xs font-extrabold rounded-xl transition-all duration-300 flex items-center justify-center gap-1 cursor-pointer ${
-                role === 'rider'
-                  ? 'bg-primary-dark text-white shadow-sm'
-                  : 'text-slate-500 hover:bg-white/80 hover:text-slate-800'
-              }`}
-            >
-              🛵 ไรเดอร์
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole('merchant')}
-              className={`flex-1 py-3 text-[10px] sm:text-xs font-extrabold rounded-xl transition-all duration-300 flex items-center justify-center gap-1 cursor-pointer ${
-                role === 'merchant'
-                  ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'text-slate-500 hover:bg-white/80 hover:text-slate-800'
-              }`}
-            >
-              🏪 ร้านค้า
-            </button>
-          </div>
+          {!success && (
+            <div className="flex bg-slate-100 p-1.5 rounded-2xl relative z-10 border border-slate-200/30 gap-1">
+              <button
+                type="button"
+                onClick={() => setRole('customer')}
+                className={`flex-1 py-3 text-[10px] sm:text-xs font-extrabold rounded-xl transition-all duration-300 flex items-center justify-center gap-1 cursor-pointer ${
+                  role === 'customer'
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'text-slate-500 hover:bg-white/80 hover:text-slate-800'
+                }`}
+              >
+                👤 ลูกค้า
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole('rider')}
+                className={`flex-1 py-3 text-[10px] sm:text-xs font-extrabold rounded-xl transition-all duration-300 flex items-center justify-center gap-1 cursor-pointer ${
+                  role === 'rider'
+                    ? 'bg-primary-dark text-white shadow-sm'
+                    : 'text-slate-500 hover:bg-white/80 hover:text-slate-800'
+                }`}
+              >
+                🛵 ไรเดอร์
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole('merchant')}
+                className={`flex-1 py-3 text-[10px] sm:text-xs font-extrabold rounded-xl transition-all duration-300 flex items-center justify-center gap-1 cursor-pointer ${
+                  role === 'merchant'
+                    ? 'bg-emerald-700 text-white shadow-sm'
+                    : 'text-slate-500 hover:bg-white/80 hover:text-slate-800'
+                }`}
+              >
+                🏪 ร้านค้า
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Form Body */}
         {success ? (
-          <div className="p-8 text-center flex flex-col items-center justify-center animate-fade-in">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 animate-bounce ${
-              role === 'customer' 
-                ? 'bg-primary-light text-primary' 
-                : role === 'rider' 
-                ? 'bg-emerald-50 text-primary-dark' 
-                : 'bg-emerald-100 text-emerald-800'
-            }`}>
-              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          <div className="p-8 pt-2 text-center flex flex-col items-center justify-center animate-fade-in space-y-6">
+            <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shadow-inner">
+              <svg className="w-10 h-10 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             </div>
-            <h2 className="text-xl font-bold text-slate-800 mb-2">สมัครเรียบร้อยแล้ว!</h2>
-            <p className="text-slate-400 text-xs font-medium">กำลังไปหน้าล็อกอิน...</p>
+            
+            <div>
+              <h2 className="text-xl font-bold text-slate-800 mb-1.5">ส่งอีเมลยืนยันตัวตนแล้ว!</h2>
+              <p className="text-slate-500 text-xs max-w-xs leading-relaxed">
+                ระบบได้ส่งลิงก์เปิดใช้งานบัญชีไปยัง <br/>
+                <span className="font-bold text-slate-700">{registeredEmail}</span>
+              </p>
+            </div>
+
+            {/* Mock Email Inbox Simulator Toast */}
+            {verificationToken && (
+              <div className="w-full bg-slate-900 text-white p-5 rounded-3xl text-left space-y-3 shadow-lg border border-slate-800 relative overflow-hidden">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                  <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    📬 กล่องข้อความจำลอง (Mock Inbox)
+                  </span>
+                  <span className="text-[10px] text-slate-400">เมื่อครู่นี้</span>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-slate-200">หัวข้อ: [CampusGo] ยืนยันอีเมลเพื่อเริ่มใช้งาน</p>
+                  <p className="text-[11px] text-slate-400">จาก: noreply@campusgo.psu.ac.th</p>
+                </div>
+                
+                <Link
+                  href={`/verify-email?token=${verificationToken}`}
+                  className="w-full mt-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                >
+                  <span>✉️ กดยืนยันอีเมลทันที (Verify Email)</span>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </Link>
+              </div>
+            )}
+
+            <div className="pt-2 space-y-3 w-full">
+              <Link
+                href="/login"
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 px-4 rounded-2xl transition text-xs flex items-center justify-center"
+              >
+                ไปที่หน้าเข้าสู่ระบบ
+              </Link>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-8 pt-4 space-y-4">
