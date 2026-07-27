@@ -486,29 +486,40 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
 
     if (!confirm(confirmMsg)) return;
 
-    // 1. Optimistic UI update: Remove order from screen & tracker immediately
-    setCustomerOrders((prev) => prev.filter((o) => o.id !== order.id));
-    setIsTrackerCollapsed(true);
-    setMessage('ยกเลิกออเดอร์เรียบร้อยแล้ว ✕');
-    setTimeout(() => setMessage(null), 3000);
-
-    // 2. Perform DB deletion / fallback update in background
     try {
-      const { error: deleteErr } = await supabase.from('orders').delete().eq('id', order.id);
-      if (deleteErr) {
-        // Fallback: update status if RLS delete policy is restricted in Supabase
-        const { error: updateErr } = await supabase
+      // 1. Send actual cancellation to Supabase DB
+      let { error } = await supabase.from('orders').delete().eq('id', order.id);
+
+      if (error) {
+        // Fallback: try update status in Supabase if delete policy is not enabled in RLS
+        const updateRes = await supabase
           .from('orders')
           .update({ status: 'cancelled' })
           .eq('id', order.id);
+        error = updateRes.error;
 
-        if (updateErr) {
-          // Extra fallback to 'completed' if 'cancelled' check constraint is triggered in DB
-          await supabase.from('orders').update({ status: 'completed' }).eq('id', order.id);
+        if (error && (error.message?.includes('check constraint') || error.code === '23514')) {
+          // Extra fallback to 'completed' if 'cancelled' check constraint is active in DB
+          const fallbackRes = await supabase
+            .from('orders')
+            .update({ status: 'completed' })
+            .eq('id', order.id);
+          error = fallbackRes.error;
         }
       }
-    } catch (err) {
-      console.warn('Background order cancellation sync:', err);
+
+      if (error) {
+        alert(`เกิดข้อผิดพลาดในการยกเลิกใน Supabase Database: ${error.message}`);
+        return;
+      }
+
+      // 2. Real-time sync & state update after successful Supabase DB response
+      setMessage('ยกเลิกออเดอร์ในฐานข้อมูลเรียบร้อยแล้ว ✕');
+      setIsTrackerCollapsed(true);
+      await fetchCustomerOrders();
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      alert(`ไม่สามารถยกเลิกออเดอร์ได้: ${err.message || err}`);
     }
   };
 
