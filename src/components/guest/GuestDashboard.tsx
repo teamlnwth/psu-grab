@@ -70,7 +70,7 @@ export default function GuestDashboard() {
               </div>
               <span className="text-[11.5px] font-black text-slate-650 group-hover:text-primary transition">สั่งอาหาร</span>
             </Link>
-            <Link href="/login" className="flex flex-col items-center gap-2 group">
+            <Link href="/ride" className="flex flex-col items-center gap-2 group">
               <div className="w-12 h-12 bg-primary-light group-hover:bg-primary/20 text-primary rounded-2xl flex items-center justify-center text-2xl transition duration-300 shadow-sm border border-primary/5 active:scale-90">
                 🛵
               </div>

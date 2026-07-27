@@ -111,8 +111,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         ];
 
-        // Seed users to database using upsert
-        await supabase.from('profiles').upsert(seedUsers, { onConflict: 'email' });
+        // Seed users to database using upsert (with fallback if new columns not present yet)
+        const { error: seedError } = await supabase.from('profiles').upsert(seedUsers, { onConflict: 'email' });
+        if (seedError && seedError.message?.includes('is_verified')) {
+          const basicSeedUsers = seedUsers.map((u: Record<string, unknown>) => {
+            const { is_verified, verification_token, is_partner, ...rest } = u;
+            return rest;
+          });
+          await supabase.from('profiles').upsert(basicSeedUsers, { onConflict: 'email' });
+        }
 
         // Seed default products for the mock merchants if products table is empty
         const { data: existingProds } = await supabase.from('products').select('id').limit(1);
@@ -157,17 +164,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const hashedPassword = await hashPassword(password);
 
       // Query database for matching user using hashed password
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('profiles')
         .select('id, name, email, phone, student_id, role, shop_name, merchant_type, is_verified')
         .or(`email.eq.${trimmedInput},student_id.eq.${trimmedInput}`)
         .eq('password', hashedPassword)
         .maybeSingle();
 
+      // Fallback if is_verified column does not exist yet on Supabase table
+      if (error && (error.message?.includes('is_verified') || error.code === 'PGRST204')) {
+        const fallbackRes = await supabase
+          .from('profiles')
+          .select('id, name, email, phone, student_id, role, shop_name, merchant_type')
+          .or(`email.eq.${trimmedInput},student_id.eq.${trimmedInput}`)
+          .eq('password', hashedPassword)
+          .maybeSingle();
+        data = fallbackRes.data ? { ...fallbackRes.data, is_verified: true } : null;
+        error = fallbackRes.error;
+      }
+
       if (error) {
         return { 
           success: false, 
-          error: `เช็คข้อมูลไม่ได้: ${error.message} (เช็คว่ารัน SQL สร้างตารางแล้วรึเปล่า)` 
+          error: `เช็คข้อมูลไม่ได้: ${error.message} (กรุณารัน SQL Migration ใน Supabase SQL Editor)` 
         };
       }
 
