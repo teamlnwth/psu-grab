@@ -95,18 +95,80 @@ function MapAutoBounds({ pickup, destination, userGps }: { pickup: LocationPoint
   return null;
 }
 
+import { PSU_PRESET_LOCATIONS } from '@/types/map';
+
+// Helper to find closest PSU preset landmark
+function findNearestPsuPreset(lat: number, lng: number): string | null {
+  let closestName: string | null = null;
+  let minDistance = 0.35; // within ~350 meters
+
+  for (const preset of PSU_PRESET_LOCATIONS) {
+    const dLat = preset.lat - lat;
+    const dLng = preset.lng - lng;
+    const dist = Math.sqrt(dLat * dLat + dLng * dLng) * 111; // approx distance in km
+    if (dist < minDistance) {
+      minDistance = dist;
+      closestName = dist < 0.08 ? preset.name : `บริเวณ ${preset.name}`;
+    }
+  }
+
+  return closestName;
+}
+
+// Reverse Geocode using Nominatim API with fallback to PSU preset or clear address name
+async function getReverseGeocodedName(lat: number, lng: number): Promise<string> {
+  const psuPresetName = findNearestPsuPreset(lat, lng);
+
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=th`,
+      { headers: { 'Accept-Language': 'th' } }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.display_name) {
+        const parts = data.display_name.split(',').map((s: string) => s.trim());
+        const friendlyName = parts
+          .slice(0, 3)
+          .filter((p: string) => !p.includes('90110') && !p.includes('ประเทศไทย'))
+          .join(', ');
+        if (friendlyName) {
+          return psuPresetName ? `${psuPresetName} (${friendlyName})` : friendlyName;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Reverse geocode error:', err);
+  }
+
+  return psuPresetName || `จุดปักหมุด (${lat}, ${lng})`;
+}
+
 // Component to handle map clicks for pinning locations
-function MapClickHandler({ selectionMode, onSelectLocation }: { selectionMode: 'pickup' | 'destination'; onSelectLocation: (mode: 'pickup' | 'destination', point: LocationPoint) => void }) {
+function MapClickHandler({
+  selectionMode,
+  onSelectLocation,
+}: {
+  selectionMode: 'pickup' | 'destination';
+  onSelectLocation: (mode: 'pickup' | 'destination', point: LocationPoint) => void;
+}) {
+  const map = useMap();
+
   useMapEvents({
-    click: (e) => {
+    click: async (e) => {
       const lat = parseFloat(e.latlng.lat.toFixed(5));
       const lng = parseFloat(e.latlng.lng.toFixed(5));
-      const point: LocationPoint = {
-        lat,
-        lng,
-        name: `ตำแหน่งที่ปักหมุด (${lat}, ${lng})`,
-      };
-      onSelectLocation(selectionMode, point);
+
+      // Pan/Fly map center to the clicked location
+      map.panTo([lat, lng], { animate: true, duration: 0.6 });
+
+      // Immediate response with nearest landmark or coordinates
+      const initialName = findNearestPsuPreset(lat, lng) || `จุดปักหมุด (${lat}, ${lng})`;
+      onSelectLocation(selectionMode, { lat, lng, name: initialName });
+
+      // Async update with reverse geocoded real Thai address
+      const detailedName = await getReverseGeocodedName(lat, lng);
+      onSelectLocation(selectionMode, { lat, lng, name: detailedName });
     },
   });
   return null;
