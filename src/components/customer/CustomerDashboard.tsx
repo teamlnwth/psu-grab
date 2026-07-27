@@ -385,7 +385,7 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
 
   // Simulated rider delivery progress animation
   useEffect(() => {
-    const activeOrders = customerOrders.filter((o) => o.status !== 'completed');
+    const activeOrders = customerOrders.filter((o) => o.status !== 'completed' && o.status !== 'cancelled');
     const hasDelivering = activeOrders.some((o) => o.status === 'delivering');
     if (!hasDelivering) {
       setRiderProgress(0.1);
@@ -487,14 +487,23 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
     if (!confirm(confirmMsg)) return;
 
     try {
-      const { error } = await supabase.from('orders').delete().eq('id', order.id);
-      if (error) throw error;
+      // Try updating status to 'cancelled' first
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({ status: 'cancelled' })
+        .eq('id', order.id);
+
+      if (updateError) {
+        // Fallback to delete if update fails
+        const { error: deleteError } = await supabase.from('orders').delete().eq('id', order.id);
+        if (deleteError) throw updateError || deleteError;
+      }
 
       setMessage('ยกเลิกออเดอร์เรียบร้อยแล้ว ✕');
       fetchCustomerOrders();
       setTimeout(() => setMessage(null), 3000);
     } catch (err: any) {
-      alert(`ยกเลิกออเดอร์ไม่ได้: ${err.message}`);
+      alert(`ไม่สามารถยกเลิกออเดอร์ได้: ${err.message || 'เกิดข้อผิดพลาดในการยกเลิก'}`);
     }
   };
 
@@ -850,7 +859,7 @@ export default function CustomerDashboard({ user, logout }: CustomerDashboardPro
 
       {/* Grab-style floating order status tracker (Expanded / Collapsed sheets) — Portal to body */}
       {typeof document !== 'undefined' && createPortal((() => {
-        const activeOrders = customerOrders.filter((o) => o.status !== 'completed');
+        const activeOrders = customerOrders.filter((o) => o.status !== 'completed' && o.status !== 'cancelled');
         if (activeOrders.length === 0) return null;
 
         const order = activeOrders[0];

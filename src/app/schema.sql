@@ -99,7 +99,8 @@ CREATE POLICY "Public read profiles" ON public.profiles FOR SELECT USING (true);
 CREATE POLICY "Public register profiles" ON public.profiles FOR INSERT WITH CHECK (true);
 CREATE POLICY "Profiles update policy" ON public.profiles FOR UPDATE USING (true);
 
--- Orders: Public read, insert & status updates for real-time app flow
+-- Orders: Public read, insert, update & delete for real-time app flow
 CREATE POLICY "Orders read policy" ON public.orders FOR SELECT USING (true);
 CREATE POLICY "Orders insert policy" ON public.orders FOR INSERT WITH CHECK (true);
 CREATE POLICY "Orders update policy" ON public.orders FOR UPDATE USING (true);
+CREATE POLICY "Orders delete policy" ON public.orders FOR DELETE USING (true);
