@@ -144,7 +144,7 @@ async function getReverseGeocodedName(lat: number, lng: number): Promise<string>
   return psuPresetName || `จุดปักหมุด (${lat}, ${lng})`;
 }
 
-// Component to handle map clicks for pinning locations
+// Component to handle map clicks & scroll panning for pinning locations
 function MapClickHandler({
   selectionMode,
   onSelectLocation,
@@ -155,15 +155,19 @@ function MapClickHandler({
   const map = useMap();
 
   useMapEvents({
-    click: async (e) => {
+    click: (e) => {
       const lat = parseFloat(e.latlng.lat.toFixed(5));
       const lng = parseFloat(e.latlng.lng.toFixed(5));
-
-      // Pan/Fly map center to the clicked location
-      map.panTo([lat, lng], { animate: true, duration: 0.6 });
+      // Pan map so clicked location moves right to the center of the screen
+      map.panTo([lat, lng], { animate: true, duration: 0.5 });
+    },
+    moveend: async () => {
+      const center = map.getCenter();
+      const lat = parseFloat(center.lat.toFixed(5));
+      const lng = parseFloat(center.lng.toFixed(5));
 
       // Immediate response with nearest landmark or coordinates
-      const initialName = findNearestPsuPreset(lat, lng) || `จุดปักหมุด (${lat}, ${lng})`;
+      const initialName = findNearestPsuPreset(lat, lng) || `จุดกลางจอ (${lat}, ${lng})`;
       onSelectLocation(selectionMode, { lat, lng, name: initialName });
 
       // Async update with reverse geocoded real Thai address
@@ -195,6 +199,24 @@ export default function LeafletMapInner({
 
   return (
     <div className="w-full h-full relative rounded-3xl overflow-hidden border border-slate-200 shadow-md">
+      {/* Fixed Center Screen Pin (Grab/Uber style location picker) */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[calc(100%-6px)] z-[500] pointer-events-none flex flex-col items-center">
+        <div className={`px-2.5 py-1 rounded-full text-[10.5px] font-black text-white shadow-xl mb-1 flex items-center gap-1 border border-white/20 backdrop-blur-md transition-colors ${
+          selectionMode === 'pickup' ? 'bg-emerald-600' : 'bg-red-600'
+        }`}>
+          <span>{selectionMode === 'pickup' ? '🟢 เลื่อนแผนที่เพื่อปรับจุดรับ' : '🔴 เลื่อนแผนที่เพื่อปรับจุดส่ง'}</span>
+        </div>
+        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white shadow-2xl border-2 border-white transition-colors ${
+          selectionMode === 'pickup' ? 'bg-emerald-500 ring-4 ring-emerald-500/20' : 'bg-red-500 ring-4 ring-red-500/20'
+        }`}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+          </svg>
+        </div>
+        <div className="w-2.5 h-1 bg-black/40 rounded-full blur-[1px] mt-0.5"></div>
+      </div>
+
       <MapContainer
         center={center}
         zoom={zoom}
